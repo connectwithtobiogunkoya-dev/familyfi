@@ -1,0 +1,91 @@
+/* Styles for the /app home screen.
+ *
+ * Mobile first: everything is one column, designed for a phone about
+ * 400 px wide. On a wider screen the same column sits in the centre and
+ * never grows beyond 480 px.
+ */
+
+/* The single column that holds the whole screen. */
+.screen {
+  max-width: 480px;
+  margin: 0 auto;
+  color: #111827;
+}
+
+/* The family name at the top. */
+.family {
+  margin: 0 0 20px;
+  font-size: 1.5rem;
+  line-height: 1.3;
+  font-weight: 700;
+}
+
+/* The large wallet card: dark green with white text. */
+.wallet {
+  padding: 24px 20px;
+  border-radius: 16px;
+  background: #14532d;
+  color: #ffffff;
+}
+
+.walletLabel {
+  margin: 0 0 8px;
+  font-size: 1rem;
+  line-height: 1.4;
+}
+
+.walletAmount {
+  margin: 0;
+  font-size: 2.25rem;
+  line-height: 1.2;
+  font-weight: 700;
+  /* Digits all take the same width, so amounts line up neatly. */
+  font-variant-numeric: tabular-nums;
+  /* A very long amount wraps onto a second line and never spills out. */
+  overflow-wrap: anywhere;
+}
+
+/* The list of pots under the wallet. */
+.pots {
+  margin: 16px 0 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: 12px;
+}
+
+/* One smaller pot card: white with a grey outline. */
+.pot {
+  padding: 16px 20px;
+  border: 1px solid #d1d5db;
+  border-radius: 12px;
+  background: #ffffff;
+}
+
+.potLabel {
+  margin: 0 0 4px;
+  font-size: 1rem;
+  line-height: 1.4;
+  color: #374151;
+}
+
+.potAmount {
+  margin: 0;
+  font-size: 1.5rem;
+  line-height: 1.3;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  overflow-wrap: anywhere;
+}
+
+/* The calm message shown when the balances cannot be loaded. */
+.notice {
+  margin: 0;
+  padding: 16px 20px;
+  border: 1px solid #d1d5db;
+  border-radius: 12px;
+  background: #f9fafb;
+  font-size: 1rem;
+  line-height: 1.5;
+  color: #111827;
+}
