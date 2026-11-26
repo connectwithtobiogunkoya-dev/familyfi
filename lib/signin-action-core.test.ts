@@ -200,7 +200,7 @@ describe("the /sign-in and sign-out source files", () => {
     new URL("./signin-action-core.ts", import.meta.url),
     new URL("./signin-form-state.ts", import.meta.url),
     new URL("./sign-out-action-core.ts", import.meta.url),
-    new URL("../app/welcome/sign-out-button.tsx", import.meta.url),
+    new URL("../app/app/profile/sign-out-button.tsx", import.meta.url),
   ];
 
   it("there are source files to check", () => {

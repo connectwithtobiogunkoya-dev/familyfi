@@ -20,6 +20,7 @@ import {
   type SignInArgs,
   type SignInCallResult,
 } from "./auth-db-core.ts";
+import { getProfileCall, type ProfileAnswer } from "./auth-db-core.ts";
 
 // How long to wait for the database before treating it as no answer.
 const DATABASE_TIMEOUT_MS = 10000;
@@ -64,4 +65,8 @@ export async function endSessionRow(tokenHash: string): Promise<boolean> {
 
 export async function getAccessCodeMaterial(customerId: string): Promise<AccessCodeMaterial | null> {
   return getAccessCodeMaterialCall(customerId, realRpc);
+}
+
+export async function getProfile(customerId: string): Promise<ProfileAnswer | null> {
+  return getProfileCall(customerId, realRpc);
 }

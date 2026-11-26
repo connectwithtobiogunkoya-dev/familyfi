@@ -17,11 +17,27 @@ import { signUpRefusalSentence } from "../../lib/auth-limits";
 import { getMyAccessCode, requireSession } from "../../lib/session";
 import { AccessCode } from "./access-code";
 import styles from "./page.module.css";
-import { SignOutButton } from "./sign-out-button";
 
 export const metadata: Metadata = {
   title: "FamilyFi",
 };
+
+// "View my profile": an outlined link, full width and 52 px tall.
+const VIEW_PROFILE_LINK = {
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "center",
+  margin: "16px 0 0",
+  minHeight: "52px",
+  padding: "12px 20px",
+  border: "2px solid #14532d",
+  borderRadius: "12px",
+  color: "#14532d",
+  fontSize: "1.125rem",
+  fontWeight: 700,
+  textDecoration: "none",
+  boxSizing: "border-box",
+} as const;
 
 export default async function WelcomePage() {
   // Wait for a real visit, so this page is never served from a stored copy.
@@ -55,8 +71,9 @@ export default async function WelcomePage() {
         Go to my household
       </a>
 
-      {/* Temporary: step 10 moves this to the profile screen. */}
-      <SignOutButton />
+      <a href="/app/profile" style={VIEW_PROFILE_LINK}>
+        View my profile
+      </a>
     </div>
   );
 }

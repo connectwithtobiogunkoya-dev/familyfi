@@ -280,3 +280,133 @@ export async function getAccessCodeMaterialCall(customerId: string, rpc: Rpc): P
   }
   return { codeEncrypted: data.code_encrypted, keyVersion: data.key_version };
 }
+
+// ---------------------------------------------------------------------
+// get_profile
+// ---------------------------------------------------------------------
+
+/** One wallet or pot on the profile screen. */
+export type ProfileAccount = {
+  name: string;
+  kind: "wallet" | "pot";
+  // The 10-digit test account number, or null if the account has none.
+  accountNumber: string | null;
+};
+
+/** What get_profile gives back, once checked. */
+export type ProfileAnswer = {
+  fullName: string;
+  role: "husband" | "wife";
+  phone: string;
+  memberRole: "owner" | "partner";
+  householdName: string;
+  verificationStatus: string;
+  verificationMethod: string;
+  verifiedAt: string;
+  ninLast3: string;
+  bvnLast3: string;
+  accounts: ProfileAccount[];
+};
+
+const PROFILE_MAX_ACCOUNTS = 20;
+const LAST_3 = /^[0-9]{3}$/;
+const TEST_PHONE = /^000[0-9]{8}$/;
+const ACCOUNT_NUMBER = /^[0-9]{10}$/;
+const ELEVEN_DIGITS = /[0-9]{11}/;
+
+// True if any text anywhere in the value, other than the phone field at
+// the top, holds 11 digits in a row: the length of a full NIN or BVN.
+function holdsElevenDigits(value: unknown, isTop: boolean): boolean {
+  if (typeof value === "string") {
+    return ELEVEN_DIGITS.test(value);
+  }
+  if (Array.isArray(value)) {
+    return value.some((item) => holdsElevenDigits(item, false));
+  }
+  if (value !== null && typeof value === "object") {
+    return Object.entries(value).some(
+      ([key, item]) => !(isTop && key === "phone") && (ELEVEN_DIGITS.test(key) || holdsElevenDigits(item, false)),
+    );
+  }
+  return false;
+}
+
+function readProfileAccount(value: unknown): ProfileAccount | null {
+  if (value === null || typeof value !== "object" || Array.isArray(value)) {
+    return null;
+  }
+  const item = value as Record<string, unknown>;
+  if (typeof item.name !== "string" || (item.kind !== "wallet" && item.kind !== "pot")) {
+    return null;
+  }
+  const number = item.account_number;
+  if (number !== null && (typeof number !== "string" || !ACCOUNT_NUMBER.test(number))) {
+    return null;
+  }
+  return { name: item.name, kind: item.kind, accountNumber: number };
+}
+
+/**
+ * Call get_profile for one person. Gives the checked profile, or null when
+ * there is none or anything goes wrong.
+ *
+ * The answer is checked by hand: every field must be there with the right
+ * type, at most 20 accounts, and the last-3 values exactly 3 digits. Any
+ * 11-digit number anywhere except the phone (which is a full NIN or BVN's
+ * length) makes the whole answer count as malformed. Only the known
+ * fields are copied across, so anything extra is dropped.
+ */
+export async function getProfileCall(customerId: string, rpc: Rpc): Promise<ProfileAnswer | null> {
+  if (!isUuid(customerId)) {
+    return null;
+  }
+  const answer = await call(rpc, "get_profile", { p_customer_id: customerId });
+  if (answer === null || answer.status === 0 || answer.error) {
+    return null;
+  }
+  const data = answer.data as Record<string, unknown> | null;
+  if (data === null || typeof data !== "object" || Array.isArray(data) || holdsElevenDigits(data, true)) {
+    return null;
+  }
+  if (
+    typeof data.full_name !== "string" ||
+    (data.role !== "husband" && data.role !== "wife") ||
+    typeof data.phone !== "string" ||
+    !TEST_PHONE.test(data.phone) ||
+    (data.member_role !== "owner" && data.member_role !== "partner") ||
+    typeof data.household_name !== "string" ||
+    typeof data.verification_status !== "string" ||
+    typeof data.verification_method !== "string" ||
+    typeof data.verified_at !== "string" ||
+    Number.isNaN(Date.parse(data.verified_at)) ||
+    typeof data.nin_last3 !== "string" ||
+    !LAST_3.test(data.nin_last3) ||
+    typeof data.bvn_last3 !== "string" ||
+    !LAST_3.test(data.bvn_last3) ||
+    !Array.isArray(data.accounts) ||
+    data.accounts.length > PROFILE_MAX_ACCOUNTS
+  ) {
+    return null;
+  }
+  const accounts: ProfileAccount[] = [];
+  for (const item of data.accounts) {
+    const account = readProfileAccount(item);
+    if (account === null) {
+      return null;
+    }
+    accounts.push(account);
+  }
+  return {
+    fullName: data.full_name,
+    role: data.role,
+    phone: data.phone,
+    memberRole: data.member_role,
+    householdName: data.household_name,
+    verificationStatus: data.verification_status,
+    verificationMethod: data.verification_method,
+    verifiedAt: data.verified_at,
+    ninLast3: data.nin_last3,
+    bvnLast3: data.bvn_last3,
+    accounts,
+  };
+}
