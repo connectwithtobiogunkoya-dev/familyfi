@@ -25,6 +25,12 @@ type Card = {
   amount: string;
 };
 
+// The address of an account's statement. The id comes from the database,
+// and is encoded anyway so it can never change the shape of the address.
+function statementAddress(accountId: string): string {
+  return `/app/accounts/${encodeURIComponent(accountId)}`;
+}
+
 export default async function AppHomePage() {
   // Wait for a real visit before doing anything. Without this line, the
   // page would be built once when the site is deployed and would show
@@ -67,16 +73,27 @@ export default async function AppHomePage() {
         </p>
       ) : (
         <>
-          <section className={styles.wallet} aria-label={wallet.name}>
+          {/* Each card is a link to that account's statement. */}
+          <a href={statementAddress(wallet.id)} className={styles.wallet}>
             <p className={styles.walletLabel}>{wallet.name}</p>
             <p className={styles.walletAmount}>{wallet.amount}</p>
-          </section>
+            {/* A visual cue that the card opens a statement. Screen readers
+                skip it, and read the link by its name and amount. */}
+            <span className={styles.chevron} aria-hidden="true">
+              ›
+            </span>
+          </a>
 
           <ul className={styles.pots}>
             {pots.map((pot) => (
-              <li key={pot.id} className={styles.pot}>
-                <p className={styles.potLabel}>{pot.name}</p>
-                <p className={styles.potAmount}>{pot.amount}</p>
+              <li key={pot.id}>
+                <a href={statementAddress(pot.id)} className={styles.pot}>
+                  <p className={styles.potLabel}>{pot.name}</p>
+                  <p className={styles.potAmount}>{pot.amount}</p>
+                  <span className={styles.chevron} aria-hidden="true">
+                    ›
+                  </span>
+                </a>
               </li>
             ))}
           </ul>

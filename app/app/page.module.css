@@ -20,9 +20,15 @@
   font-weight: 700;
 }
 
-/* The large wallet card: dark green with white text. */
+/* The large wallet card: dark green with white text. It is a link to the
+ * wallet's statement, so it is shown as a block with no underline. */
 .wallet {
-  padding: 24px 20px;
+  display: block;
+  position: relative;
+  text-decoration: none;
+  /* The right side is wider than the left to leave room for the chevron,
+   * so a long name or amount wraps before it reaches it. */
+  padding: 24px 48px 24px 20px;
   border-radius: 16px;
   background: #14532d;
   color: #ffffff;
@@ -54,9 +60,15 @@
   gap: 12px;
 }
 
-/* One smaller pot card: white with a grey outline. */
+/* One smaller pot card: white with a grey outline. Also a link, to that
+ * pot's statement. */
 .pot {
-  padding: 16px 20px;
+  display: block;
+  position: relative;
+  text-decoration: none;
+  color: inherit;
+  /* Room on the right for the chevron, as on the wallet card. */
+  padding: 16px 48px 16px 20px;
   border: 1px solid #d1d5db;
   border-radius: 12px;
   background: #ffffff;
@@ -76,6 +88,36 @@
   font-weight: 700;
   font-variant-numeric: tabular-nums;
   overflow-wrap: anywhere;
+}
+
+/* The "›" at the right edge of each card, a cue that it opens a
+ * statement. It sits in the space kept free by the card's right padding,
+ * centred from top to bottom, and is skipped by screen readers. */
+.chevron {
+  position: absolute;
+  top: 50%;
+  right: 20px;
+  transform: translateY(-50%);
+  font-size: 1.5rem;
+  line-height: 1;
+  pointer-events: none;
+}
+
+/* Muted on each card: light grey on the dark green wallet, dark grey on
+ * the white pots. */
+.wallet .chevron {
+  color: #d1d5db;
+}
+
+.pot .chevron {
+  color: #374151;
+}
+
+/* A clear outline when a card is reached with the keyboard. */
+.wallet:focus-visible,
+.pot:focus-visible {
+  outline: 3px solid #2563eb;
+  outline-offset: 2px;
 }
 
 /* The calm message shown when the balances cannot be loaded. */

@@ -11,6 +11,8 @@ import "server-only";
 
 import { createClient } from "@supabase/supabase-js";
 
+import { normaliseAccountId, toStatementLine, type StatementLine } from "./statement.ts";
+
 // The seeded demo family, "The Adeyemi Family" (see supabase/seed.sql).
 // It is fixed here on purpose: nothing a visitor sends can change which
 // household is read.
@@ -129,4 +131,91 @@ function compareAccounts(a: AccountBalance, b: AccountBalance): number {
     return aRank - bRank;
   }
   return a.name.localeCompare(b.name);
+}
+
+// ---------------------------------------------------------------------
+// Statements
+// ---------------------------------------------------------------------
+
+// The most lines a statement shows. The newest lines come first.
+export const STATEMENT_LINE_LIMIT = 100;
+
+export type AccountStatement = {
+  account: AccountBalance;
+  // Newest first. At most STATEMENT_LINE_LIMIT lines.
+  lines: StatementLine[];
+};
+
+/**
+ * Read one account's statement: the account with its current balance,
+ * and its newest lines.
+ *
+ * It only serves the demo family's wallet and pots. For anything else it
+ * returns null, and does not say why: an id that is badly formed, that
+ * does not exist, that belongs to another household, or that is the bank
+ * account. Read only: it writes nothing.
+ */
+export async function getAccountStatement(accountId: unknown): Promise<AccountStatement | null> {
+  // Check the id before anything is sent to the database.
+  const id = normaliseAccountId(accountId);
+  if (id === null) {
+    return null;
+  }
+
+  const supabase = createClient(
+    requireSetting("SUPABASE_URL"),
+    requireSetting("SUPABASE_SECRET_KEY"),
+    {
+      // Server code with no signed-in user: no login session is saved,
+      // refreshed or read from a web address.
+      auth: {
+        persistSession: false,
+        autoRefreshToken: false,
+        detectSessionInUrl: false,
+      },
+    },
+  );
+
+  // 1. The account itself, but only if it is the demo family's wallet or
+  //    one of its pots. The bank account is a different kind, so it is
+  //    never found here.
+  const { data: accountRow, error: accountError } = await supabase
+    .from("account_balances")
+    .select("account_id, name, kind, balance_kobo::text")
+    .eq("account_id", id)
+    .eq("household_id", DEMO_HOUSEHOLD_ID)
+    .in("kind", [...VISIBLE_KINDS])
+    .maybeSingle();
+
+  if (accountError) {
+    // Only the error's code and message go to the server log: never the
+    // key, the address or the whole error object.
+    console.error(`getAccountStatement failed: ${accountError.code} ${accountError.message}`);
+    throw new Error("Could not read the statement from the database.");
+  }
+
+  if (accountRow === null) {
+    return null;
+  }
+
+  const account = toAccountBalance(accountRow);
+
+  // 2. Its newest lines, ordered by seq, the entry counter. Never by time
+  //    or id. seq is only used for ordering and is not sent back.
+  const { data: lineRows, error: linesError } = await supabase
+    .from("account_statements")
+    .select("description, created_at, amount_kobo::text, balance_after_kobo::text")
+    .eq("account_id", id)
+    .eq("household_id", DEMO_HOUSEHOLD_ID)
+    .order("seq", { ascending: false })
+    .limit(STATEMENT_LINE_LIMIT);
+
+  if (linesError) {
+    console.error(`getAccountStatement failed: ${linesError.code} ${linesError.message}`);
+    throw new Error("Could not read the statement from the database.");
+  }
+
+  const rows: unknown[] = lineRows ?? [];
+
+  return { account, lines: rows.map(toStatementLine) };
 }
