@@ -1,0 +1,94 @@
+/* Styles for the welcome screen.
+ *
+ * Mobile first, matching the other screens: one column for a phone about
+ * 400 px wide, centred and never wider than 480 px. Every tap target is
+ * at least 52 px tall.
+ */
+
+.screen {
+  max-width: 480px;
+  margin: 0 auto;
+  color: #111827;
+}
+
+.title {
+  margin: 0 0 16px;
+  font-size: 1.5rem;
+  line-height: 1.3;
+  font-weight: 700;
+}
+
+/* The access code: the same dark green card as the wallet on /app. */
+.codeCard {
+  padding: 20px;
+  border-radius: 16px;
+  background: #14532d;
+  color: #ffffff;
+  display: grid;
+  gap: 16px;
+}
+
+.code {
+  margin: 0;
+  font-size: 1.75rem;
+  line-height: 1.3;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  font-family: ui-monospace, "Cascadia Mono", Menlo, Consolas, monospace;
+  text-align: center;
+  overflow-wrap: anywhere;
+  user-select: all;
+}
+
+.copy {
+  min-height: 52px;
+  padding: 12px 20px;
+  border: 2px solid #ffffff;
+  border-radius: 12px;
+  background: transparent;
+  color: #ffffff;
+  font-size: 1.125rem;
+  font-weight: 700;
+  font-family: inherit;
+  cursor: pointer;
+}
+
+.note {
+  margin: 16px 0 0;
+  font-size: 1rem;
+  line-height: 1.5;
+}
+
+/* A calm sentence when the code cannot be shown. */
+.notice {
+  margin: 0;
+  padding: 16px 20px;
+  border: 1px solid #d1d5db;
+  border-radius: 12px;
+  background: #f9fafb;
+  font-size: 1rem;
+  line-height: 1.5;
+}
+
+/* "Go to my household": a full-width link that looks like a button. */
+.button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 24px 0 0;
+  min-height: 52px;
+  padding: 12px 20px;
+  border-radius: 12px;
+  background: #14532d;
+  color: #ffffff;
+  font-size: 1.125rem;
+  font-weight: 700;
+  text-decoration: none;
+  box-sizing: border-box;
+}
+
+.copy:focus-visible,
+.button:focus-visible {
+  outline: 3px solid #2563eb;
+  outline-offset: 2px;
+}

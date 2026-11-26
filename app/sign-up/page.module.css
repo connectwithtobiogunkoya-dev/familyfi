@@ -1,0 +1,193 @@
+/* Styles for the sign-up screen.
+ *
+ * Mobile first, matching the other screens: one column for a phone about
+ * 400 px wide, centred and never wider than 480 px. Every tap target is
+ * at least 52 px tall.
+ */
+
+.screen {
+  max-width: 480px;
+  margin: 0 auto;
+  color: #111827;
+}
+
+.back {
+  display: inline-block;
+  margin: 0 0 16px;
+  padding: 8px 0;
+  font-size: 1rem;
+  color: #14532d;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.title {
+  margin: 0 0 16px;
+  font-size: 1.5rem;
+  line-height: 1.3;
+  font-weight: 700;
+}
+
+/* The test-environment note, or the paused sentence. */
+.notice {
+  margin: 0 0 16px;
+  padding: 16px 20px;
+  border: 1px solid #d1d5db;
+  border-radius: 12px;
+  background: #f9fafb;
+  font-size: 1rem;
+  line-height: 1.5;
+}
+
+.form {
+  margin: 4px 0 0;
+  display: grid;
+}
+
+.label {
+  margin: 16px 0 8px;
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+/* Tall enough to tap easily; text this size stops phones zooming in. */
+.input {
+  min-height: 52px;
+  padding: 12px 14px;
+  border: 1px solid #374151;
+  border-radius: 12px;
+  font-size: 1.125rem;
+  font-family: inherit;
+  color: #111827;
+  background: #ffffff;
+  box-sizing: border-box;
+  width: 100%;
+}
+
+.input[aria-invalid="true"] {
+  border-color: #9a3412;
+}
+
+/* The sentence beside a field with a problem. */
+.problem {
+  margin: 6px 0 0;
+  font-size: 0.9375rem;
+  line-height: 1.4;
+  color: #9a3412;
+}
+
+/* Husband or Wife: two big choices side by side. */
+.roles {
+  margin: 20px 0 0;
+  padding: 0;
+  border: 0;
+}
+
+.roleChoices {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.role {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 52px;
+  padding: 12px;
+  border: 2px solid #374151;
+  border-radius: 12px;
+  background: #ffffff;
+  font-size: 1.125rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.roleChosen {
+  border-color: #14532d;
+  background: #14532d;
+  color: #ffffff;
+}
+
+/* The radio itself is hidden from sight but still reachable by keyboard. */
+.roleInput {
+  position: absolute;
+  opacity: 0;
+  width: 1px;
+  height: 1px;
+}
+
+.role:focus-within {
+  outline: 3px solid #2563eb;
+  outline-offset: 2px;
+}
+
+.terms {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  margin: 20px 0 0;
+  min-height: 52px;
+  font-size: 1rem;
+  line-height: 1.5;
+  cursor: pointer;
+}
+
+.termsBox {
+  flex: none;
+  width: 24px;
+  height: 24px;
+  margin: 2px 0 0;
+}
+
+/* The one general sentence, directly above the button. */
+.error {
+  margin: 20px 0 0;
+  padding: 14px 16px;
+  border: 1px solid #9a3412;
+  border-radius: 12px;
+  background: #ffffff;
+  font-size: 1rem;
+  line-height: 1.5;
+  color: #111827;
+}
+
+.button,
+.secondary {
+  min-height: 52px;
+  padding: 12px 20px;
+  border-radius: 12px;
+  font-size: 1.125rem;
+  font-weight: 700;
+  font-family: inherit;
+  cursor: pointer;
+}
+
+/* "Check my details": full width, dark green. */
+.button {
+  margin: 20px 0 0;
+  border: 0;
+  background: #14532d;
+  color: #ffffff;
+}
+
+.button:disabled {
+  background: #374151;
+  cursor: progress;
+}
+
+/* "Fill in test details": an outlined button, so it is not mistaken for sending. */
+.secondary {
+  border: 2px solid #14532d;
+  background: #ffffff;
+  color: #14532d;
+}
+
+.input:focus-visible,
+.button:focus-visible,
+.secondary:focus-visible,
+.back:focus-visible,
+.termsBox:focus-visible {
+  outline: 3px solid #2563eb;
+  outline-offset: 2px;
+}
