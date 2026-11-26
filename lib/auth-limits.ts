@@ -8,6 +8,8 @@
 // into one fixed sentence. Only the code is ever read; the rest of the
 // database's message is never passed on to a visitor.
 
+import { UNKNOWN_VISITOR } from "./visitor.ts";
+
 export const AUTH_LIMITS = {
   /** Sign-ups from one visitor in 24 hours. */
   signUpsPerVisitorPer24Hours: 3,
@@ -23,13 +25,31 @@ export const AUTH_LIMITS = {
   sessionIdleDays: 30,
   /** A session ends after this many days whatever. */
   sessionAbsoluteDays: 180,
-  /**
-   * A session's last use is moved forward at most this often. The database
-   * function get_session uses the same one hour; this number is here so
-   * the rule is written down in one place the app can read.
-   */
-  sessionActivityUpdateMinutes: 60,
 } as const;
+
+// How often a session's last use is moved forward (at most once an hour)
+// is decided by the database function get_session alone, so it is not
+// repeated here.
+
+// On a developer's own computer every request has no visitor address, so
+// they all share the "unknown" bucket and the normal limit would be used
+// up after a few test sign-ups. This higher limit applies only there.
+const DEVELOPMENT_UNKNOWN_VISITOR_SIGN_UPS = 1000;
+
+/**
+ * How many sign-ups one visitor may make in 24 hours.
+ *
+ * The normal limit, except when the app is running in development and the
+ * visitor has no address (the "unknown" bucket): then 1000, so local
+ * testing is not blocked. On the live site, or for any real address, it
+ * is always the normal limit.
+ */
+export function maxSignUpsPerVisitor(address: string, isDevelopment: boolean): number {
+  if (isDevelopment === true && address === UNKNOWN_VISITOR) {
+    return DEVELOPMENT_UNKNOWN_VISITOR_SIGN_UPS;
+  }
+  return AUTH_LIMITS.signUpsPerVisitorPer24Hours;
+}
 
 // ---------------------------------------------------------------------
 // Sign-up refusals (raised by create_household)

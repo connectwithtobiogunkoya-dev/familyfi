@@ -8,7 +8,7 @@
 import assert from "node:assert/strict";
 import { afterEach, describe, it } from "node:test";
 
-import { isWritesEnabledValue, writesEnabled } from "./settings.ts";
+import { isWritesEnabledValue, signupsEnabled, writesEnabled } from "./settings.ts";
 
 describe("isWritesEnabledValue: only the exact text \"true\" switches writes on", () => {
   it("\"true\" is ON", () => {
@@ -78,5 +78,37 @@ describe("writesEnabled: reads the WRITES_ENABLED server setting", () => {
     assert.equal(writesEnabled(), true);
     process.env.WRITES_ENABLED = "";
     assert.equal(writesEnabled(), false);
+  });
+});
+
+describe("signupsEnabled: only the exact text \"true\" lets people sign up", () => {
+  it("\"true\" is ON", () => {
+    assert.equal(signupsEnabled({ SIGNUPS_ENABLED: "true" }), true);
+  });
+
+  const offValues: Array<[label: string, value: string | undefined]> = [
+    ["capitals: \"TRUE\"", "TRUE"],
+    ["a capital letter: \"True\"", "True"],
+    ["\"1\"", "1"],
+    ["\"yes\"", "yes"],
+    ["a leading space: \" true\"", " true"],
+    ["a trailing space: \"true \"", "true "],
+    ["\"false\"", "false"],
+    ["an empty string", ""],
+    ["a missing setting", undefined],
+  ];
+
+  for (const [label, value] of offValues) {
+    it(`${label} is OFF`, () => {
+      assert.equal(signupsEnabled({ SIGNUPS_ENABLED: value }), false);
+    });
+  }
+
+  it("settings with no SIGNUPS_ENABLED at all is OFF", () => {
+    assert.equal(signupsEnabled({}), false);
+  });
+
+  it("is separate from the write switch: WRITES_ENABLED does not turn sign-up on", () => {
+    assert.equal(signupsEnabled({ WRITES_ENABLED: "true" } as never), false);
   });
 });

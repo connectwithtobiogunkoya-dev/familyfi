@@ -30,3 +30,25 @@ export function isWritesEnabledValue(value: unknown): boolean {
 export function writesEnabled(): boolean {
   return isWritesEnabledValue(process.env.WRITES_ENABLED);
 }
+
+// ---------------------------------------------------------------------
+// The sign-up switch
+// ---------------------------------------------------------------------
+//
+// A second, separate switch, SIGNUPS_ENABLED, decides whether new people
+// may sign up. It follows exactly the same rule as WRITES_ENABLED: ON only
+// for the exact text "true", OFF for anything else.
+
+/** The settings signupsEnabled reads. */
+export type SignupSettings = { SIGNUPS_ENABLED?: string; [name: string]: string | undefined };
+
+/**
+ * May new people sign up right now?
+ *
+ * Reads SIGNUPS_ENABLED from the settings given, or from the real server
+ * settings when none are given, at the moment it is called. Tests pass
+ * stand-in settings so the real ones are never touched.
+ */
+export function signupsEnabled(settings: SignupSettings = process.env): boolean {
+  return settings.SIGNUPS_ENABLED === "true";
+}

@@ -9,11 +9,13 @@ import {
   AUTH_LIMITS,
   SIGN_IN_STATUSES,
   SIGN_UP_REFUSAL_CODES,
+  maxSignUpsPerVisitor,
   readSignInStatus,
   readSignUpRefusal,
   signInSentence,
   signUpRefusalSentence,
 } from "./auth-limits.ts";
+import { UNKNOWN_VISITOR } from "./visitor.ts";
 
 const SIGN_UP_SENTENCES = {
   bad_details: "Some details are not in the right form. Please check them and try again.",
@@ -46,8 +48,11 @@ describe("AUTH_LIMITS: the approved numbers", () => {
       wrongCodesPer24Hours: 20,
       sessionIdleDays: 30,
       sessionAbsoluteDays: 180,
-      sessionActivityUpdateMinutes: 60,
     });
+  });
+
+  it("does not hold the once-an-hour session rule: the database owns that", () => {
+    assert.ok(!("sessionActivityUpdateMinutes" in AUTH_LIMITS));
   });
 
   it("the idle length is no longer than the absolute length, as the database requires", () => {
@@ -200,5 +205,38 @@ describe("every visitor sentence", () => {
     for (const sentence of all) {
       assert.ok(!/limit_|_|sql|postgres|constraint|error/i.test(sentence), sentence);
     }
+  });
+});
+
+describe("maxSignUpsPerVisitor", () => {
+  it("on the live site, the unknown bucket gets the normal limit", () => {
+    assert.equal(maxSignUpsPerVisitor(UNKNOWN_VISITOR, false), 3);
+  });
+
+  it("on the live site, a real address gets the normal limit", () => {
+    assert.equal(maxSignUpsPerVisitor("203.0.113.7", false), 3);
+  });
+
+  it("in development, a real address still gets the normal limit", () => {
+    assert.equal(maxSignUpsPerVisitor("203.0.113.7", true), 3);
+  });
+
+  it("in development, the unknown bucket gets 1000", () => {
+    assert.equal(maxSignUpsPerVisitor(UNKNOWN_VISITOR, true), 1000);
+  });
+
+  it("the normal limit is the one in AUTH_LIMITS", () => {
+    assert.equal(maxSignUpsPerVisitor(UNKNOWN_VISITOR, false), AUTH_LIMITS.signUpsPerVisitorPer24Hours);
+  });
+
+  it("only the exact word \"unknown\" counts, not a near miss", () => {
+    for (const address of ["Unknown", "unknown ", "UNKNOWN", ""]) {
+      assert.equal(maxSignUpsPerVisitor(address, true), 3, address);
+    }
+  });
+
+  it("only true counts as development, not a truthy value", () => {
+    assert.equal(maxSignUpsPerVisitor(UNKNOWN_VISITOR, "yes" as unknown as boolean), 3);
+    assert.equal(maxSignUpsPerVisitor(UNKNOWN_VISITOR, 1 as unknown as boolean), 3);
   });
 });
