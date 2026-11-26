@@ -11,13 +11,15 @@
 
 import { redirect } from "next/navigation";
 
+import { getCurrentHouseholdId } from "../../../lib/current-household";
 import { moveMoney } from "../../../lib/moves";
 import { pathAfterMoveMoney } from "../../../lib/redirects";
 
 export async function moveMoneyAction(formData: FormData): Promise<void> {
   // Whatever the browser sent, as it sent it. moveMoney refuses anything
   // that is missing or not in the right form.
-  const result = await moveMoney({
+  // The household comes from the server, never from the form.
+  const result = await moveMoney(getCurrentHouseholdId(), {
     amount: formData.get("amount"),
     fromAccountId: formData.get("fromAccountId"),
     toAccountId: formData.get("toAccountId"),

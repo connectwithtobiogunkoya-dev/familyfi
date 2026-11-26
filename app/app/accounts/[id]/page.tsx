@@ -11,6 +11,7 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { connection } from "next/server";
 
+import { getCurrentHouseholdId } from "../../../../lib/current-household";
 import { getAccountStatement, STATEMENT_LINE_LIMIT, type AccountStatement } from "../../../../lib/ledger";
 import { formatNaira } from "../../../../lib/money";
 import { balancesAgree, describeAmount, formatStatementDate } from "../../../../lib/statement";
@@ -33,7 +34,7 @@ export default async function AccountStatementPage({ params }: { params: Promise
   let failed = false;
 
   try {
-    statement = await getAccountStatement(id);
+    statement = await getAccountStatement(getCurrentHouseholdId(), id);
   } catch {
     // Whatever went wrong, the visitor sees only the calm sentence below.
     // The reason is written to the server's log by the ledger reader.

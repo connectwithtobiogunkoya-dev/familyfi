@@ -11,6 +11,7 @@ import type { Metadata } from "next";
 import { connection } from "next/server";
 
 import { errorSentence, readErrorCode } from "../../../lib/errors";
+import { getCurrentHouseholdId } from "../../../lib/current-household";
 import { getHouseholdBalances, type AccountBalance } from "../../../lib/ledger";
 import { formatNaira } from "../../../lib/money";
 import { writesEnabled } from "../../../lib/settings";
@@ -59,7 +60,7 @@ export default async function MoveMoneyPage({
   // returns the bank account, so it cannot appear anywhere on this screen.
   let accounts: AccountBalance[] = [];
   try {
-    accounts = await getHouseholdBalances();
+    accounts = await getHouseholdBalances(getCurrentHouseholdId());
   } catch {
     // The reason is written to the server log by the ledger reader.
     accounts = [];

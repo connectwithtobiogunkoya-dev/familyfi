@@ -10,13 +10,15 @@
 
 import { redirect } from "next/navigation";
 
+import { getCurrentHouseholdId } from "../../../lib/current-household";
 import { addMoney } from "../../../lib/moves";
 import { pathAfterAddMoney } from "../../../lib/redirects";
 
 export async function addMoneyAction(formData: FormData): Promise<void> {
   // Whatever the browser sent, as it sent it. addMoney refuses anything
   // that is missing or not in the right form.
-  const result = await addMoney({
+  // The household comes from the server, never from the form.
+  const result = await addMoney(getCurrentHouseholdId(), {
     amount: formData.get("amount"),
     idempotencyKey: formData.get("idempotencyKey"),
   });

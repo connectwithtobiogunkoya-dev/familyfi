@@ -1,6 +1,6 @@
 // The home screen of the app, at the address /app.
 //
-// It shows the demo family's wallet and pots with their balances, a
+// It shows the household's wallet and pots with their balances, a
 // confirmation line after money has moved, and the way to Add money.
 // Nothing on this screen moves money by itself.
 //
@@ -12,6 +12,7 @@ import type { Metadata } from "next";
 import { connection } from "next/server";
 
 import { errorSentence } from "../../lib/errors";
+import { getCurrentHouseholdId } from "../../lib/current-household";
 import { getHouseholdBalances } from "../../lib/ledger";
 import { formatNaira } from "../../lib/money";
 import { readNotice } from "../../lib/notices";
@@ -54,7 +55,7 @@ export default async function AppHomePage({
   let pots: Card[] = [];
 
   try {
-    const balances = await getHouseholdBalances();
+    const balances = await getHouseholdBalances(getCurrentHouseholdId());
 
     for (const account of balances) {
       const card: Card = {

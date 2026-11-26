@@ -53,6 +53,9 @@ export type HouseholdAccount = {
 export type LedgerEntry = { account_id: string; amount_kobo: number };
 
 export type PostRequest = {
+  // The household the transaction belongs to: always the one the caller
+  // gave runAddMoney or runMoveMoney, never one from the form.
+  householdId: string;
   description: string;
   idempotencyKey: string;
   entries: LedgerEntry[];
@@ -77,7 +80,9 @@ export type PostOutcome =
 /** The ways this file reaches the outside world. */
 export type MoveDeps = {
   writesEnabled: () => boolean;
-  loadHouseholdAccounts: () => Promise<LoadOutcome>;
+  // Every account of this one household, the bank included. Must return
+  // only that household's accounts.
+  loadHouseholdAccounts: (householdId: string) => Promise<LoadOutcome>;
   postTransaction: (request: PostRequest) => Promise<PostOutcome>;
   logError: (line: string) => void;
 };
@@ -187,10 +192,10 @@ function readAmount(amount: unknown): bigint | MoveResult {
   }
 }
 
-async function loadAccounts(deps: MoveDeps, label: string): Promise<HouseholdAccount[] | null> {
+async function loadAccounts(deps: MoveDeps, householdId: string, label: string): Promise<HouseholdAccount[] | null> {
   let outcome: LoadOutcome;
   try {
-    outcome = await deps.loadHouseholdAccounts();
+    outcome = await deps.loadHouseholdAccounts(householdId);
   } catch (problem) {
     deps.logError(`${label} failed: could not read the accounts: ${describeProblem(problem)}`);
     return null;
@@ -244,11 +249,22 @@ async function post(deps: MoveDeps, label: string, request: PostRequest): Promis
 // Add money: from the household's bank account into its wallet
 // ---------------------------------------------------------------------
 
-export async function runAddMoney(input: AddMoneyInput, deps: MoveDeps): Promise<MoveResult> {
+// householdId is supplied by the caller, from getCurrentHouseholdId() on
+// the server. It is never read from the form: the input object has no
+// household in it, and any extra field the form sends is ignored.
+export async function runAddMoney(householdId: unknown, input: AddMoneyInput, deps: MoveDeps): Promise<MoveResult> {
   try {
     // a. The kill switch, before anything else.
     if (!deps.writesEnabled()) {
       return refused("writes_off");
+    }
+
+    //    The household: a properly formed UUID, or nothing is done. A bad
+    //    one is a mistake in the app, so it is "unknown", and the database
+    //    is not asked anything.
+    const household = normaliseAccountId(householdId);
+    if (household === null) {
+      return refused("unknown");
     }
 
     // b. The idempotency key.
@@ -265,12 +281,13 @@ export async function runAddMoney(input: AddMoneyInput, deps: MoveDeps): Promise
 
     // d. The accounts, from the database. The caller names none: Add money
     //    always goes from the household's bank account to its wallet.
-    const accounts = await loadAccounts(deps, "addMoney");
+    const accounts = await loadAccounts(deps, household, "addMoney");
     if (accounts === null) {
       return refused("unknown");
     }
 
-    // e. Exactly one bank account and exactly one wallet.
+    // e. Exactly one bank account and exactly one wallet, both this
+    //    household's own (they come from this household's list only).
     const banks = accounts.filter((account) => account.kind === "bank_source");
     const wallets = accounts.filter((account) => account.kind === "wallet");
     if (banks.length !== 1 || wallets.length !== 1) {
@@ -283,7 +300,11 @@ export async function runAddMoney(input: AddMoneyInput, deps: MoveDeps): Promise
       return refused("ceiling");
     }
 
+    // The same household goes to post_transaction. This check and the
+    // database's own refusal of entries on another household's accounts
+    // are two separate layers: either one alone would stop a mix-up.
     return await post(deps, "addMoney", {
+      householdId: household,
       description: "Add money to the wallet",
       idempotencyKey: key,
       entries: buildEntries(banks[0].account_id, wallets[0].account_id, amount),
@@ -298,11 +319,22 @@ export async function runAddMoney(input: AddMoneyInput, deps: MoveDeps): Promise
 // Move money: wallet to pot, or pot to wallet
 // ---------------------------------------------------------------------
 
-export async function runMoveMoney(input: MoveMoneyInput, deps: MoveDeps): Promise<MoveResult> {
+// householdId is supplied by the caller, from getCurrentHouseholdId() on
+// the server. It is never read from the form: the input object has no
+// household in it, and any extra field the form sends is ignored.
+export async function runMoveMoney(householdId: unknown, input: MoveMoneyInput, deps: MoveDeps): Promise<MoveResult> {
   try {
     // a. The kill switch, before anything else.
     if (!deps.writesEnabled()) {
       return refused("writes_off");
+    }
+
+    //    The household: a properly formed UUID, or nothing is done. A bad
+    //    one is a mistake in the app, so it is "unknown", and the database
+    //    is not asked anything.
+    const household = normaliseAccountId(householdId);
+    if (household === null) {
+      return refused("unknown");
     }
 
     // b. The idempotency key.
@@ -329,10 +361,10 @@ export async function runMoveMoney(input: MoveMoneyInput, deps: MoveDeps): Promi
       return refused("bad_accounts");
     }
 
-    //    Then their kinds and names, from the database, in the one
-    //    household the site uses. An account from anywhere else is simply
-    //    not in this list.
-    const accounts = await loadAccounts(deps, "moveMoney");
+    //    Then their kinds and names, from the database, for this household
+    //    only. An account of any other household is simply not in this
+    //    list, so it is "unknown", the same as one that does not exist.
+    const accounts = await loadAccounts(deps, household, "moveMoney");
     if (accounts === null) {
       return refused("unknown");
     }
@@ -349,7 +381,11 @@ export async function runMoveMoney(input: MoveMoneyInput, deps: MoveDeps): Promi
       return refused("bad_accounts");
     }
 
+    // The same household goes to post_transaction. This check and the
+    // database's own refusal of entries on another household's accounts
+    // are two separate layers: either one alone would stop a mix-up.
     return await post(deps, "moveMoney", {
+      householdId: household,
       description: `Move money from ${from.name} to ${to.name}`,
       idempotencyKey: key,
       entries: buildEntries(from.account_id, to.account_id, amount),

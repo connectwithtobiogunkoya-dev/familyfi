@@ -10,6 +10,7 @@ import type { Metadata } from "next";
 import { connection } from "next/server";
 
 import { errorSentence, readErrorCode } from "../../../lib/errors";
+import { getCurrentHouseholdId } from "../../../lib/current-household";
 import { getHouseholdBalances } from "../../../lib/ledger";
 import { formatNaira } from "../../../lib/money";
 import { writesEnabled } from "../../../lib/settings";
@@ -57,7 +58,7 @@ export default async function AddMoneyPage({
   // The wallet, read from the database: its name and its balance.
   let wallet: { name: string; balance: string } | null = null;
   try {
-    const account = (await getHouseholdBalances()).find((a) => a.kind === "wallet");
+    const account = (await getHouseholdBalances(getCurrentHouseholdId())).find((a) => a.kind === "wallet");
     wallet = account === undefined ? null : { name: account.name, balance: formatNaira(account.balance_kobo) };
   } catch {
     // The reason is written to the server log by the ledger reader.

@@ -22,10 +22,6 @@ import {
 } from "./moves-core.ts";
 import { writesEnabled } from "./settings.ts";
 
-// The seeded demo family. The same id is fixed in lib/ledger.ts. Nothing a
-// visitor sends can change which household is used.
-const DEMO_HOUSEHOLD_ID = "a0000000-0000-4000-8000-000000000001";
-
 // How long to wait for the database before treating it as no answer.
 const DATABASE_TIMEOUT_MS = 10000;
 
@@ -77,13 +73,14 @@ function toHouseholdAccount(row: unknown): HouseholdAccount | null {
 const realDeps: MoveDeps = {
   writesEnabled,
 
-  // Every account of the demo household, the bank included, with its
-  // balance from the entries, sent as text.
-  async loadHouseholdAccounts(): Promise<LoadOutcome> {
+  // Every account of the given household, the bank included, with its
+  // balance from the entries, sent as text. The household is named in the
+  // database request, so only its accounts can come back.
+  async loadHouseholdAccounts(householdId: string): Promise<LoadOutcome> {
     const { data, error } = await connect()
       .from("account_balances")
       .select("account_id, name, kind, balance_kobo::text")
-      .eq("household_id", DEMO_HOUSEHOLD_ID)
+      .eq("household_id", householdId)
       .abortSignal(AbortSignal.timeout(DATABASE_TIMEOUT_MS));
 
     if (error) {
@@ -106,7 +103,10 @@ const realDeps: MoveDeps = {
   async postTransaction(request: PostRequest): Promise<PostOutcome> {
     const { data, error, status } = await connect()
       .rpc("post_transaction", {
-        p_household_id: DEMO_HOUSEHOLD_ID,
+        // The same household the accounts were read for. post_transaction
+        // also refuses any entry on another household's account: a second,
+        // separate layer.
+        p_household_id: request.householdId,
         p_description: request.description,
         p_idempotency_key: request.idempotencyKey,
         p_entries: request.entries,
@@ -137,12 +137,20 @@ const realDeps: MoveDeps = {
   },
 };
 
-/** Add money from the household's bank account into its wallet. */
-export async function addMoney(input: AddMoneyInput): Promise<MoveResult> {
-  return runAddMoney(input, realDeps);
+/**
+ * Add money from the household's bank account into its wallet. The
+ * household comes from the caller (getCurrentHouseholdId() on the
+ * server), never from the form.
+ */
+export async function addMoney(householdId: string, input: AddMoneyInput): Promise<MoveResult> {
+  return runAddMoney(householdId, input, realDeps);
 }
 
-/** Move money from the wallet to a pot, or from a pot to the wallet. */
-export async function moveMoney(input: MoveMoneyInput): Promise<MoveResult> {
-  return runMoveMoney(input, realDeps);
+/**
+ * Move money from the wallet to a pot, or from a pot to the wallet, within
+ * the household the caller gives (getCurrentHouseholdId() on the server),
+ * never one from the form.
+ */
+export async function moveMoney(householdId: string, input: MoveMoneyInput): Promise<MoveResult> {
+  return runMoveMoney(householdId, input, realDeps);
 }
