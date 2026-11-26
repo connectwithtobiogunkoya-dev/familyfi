@@ -1,0 +1,133 @@
+/* Styles for the Add money screen.
+ *
+ * Mobile first, matching the other /app screens: one column for a phone
+ * about 400 px wide, centred and never wider than 480 px.
+ */
+
+.screen {
+  max-width: 480px;
+  margin: 0 auto;
+  color: #111827;
+}
+
+/* "‹ Back to balances": a large enough target for a thumb. */
+.back {
+  display: inline-block;
+  margin: 0 0 16px;
+  padding: 8px 0;
+  font-size: 1rem;
+  color: #14532d;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.title {
+  margin: 0 0 16px;
+  font-size: 1.5rem;
+  line-height: 1.3;
+  font-weight: 700;
+}
+
+/* The wallet's balance: the same dark green card as on /app. */
+.wallet {
+  padding: 20px;
+  border-radius: 16px;
+  background: #14532d;
+  color: #ffffff;
+}
+
+.walletLabel {
+  margin: 0 0 6px;
+  font-size: 1rem;
+  line-height: 1.4;
+}
+
+.walletAmount {
+  margin: 0;
+  font-size: 2rem;
+  line-height: 1.2;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  overflow-wrap: anywhere;
+}
+
+/* The fixed sentence for a refused request, above the form. */
+.error {
+  margin: 16px 0 0;
+  padding: 14px 16px;
+  border: 1px solid #9a3412;
+  border-radius: 12px;
+  background: #ffffff;
+  font-size: 1rem;
+  line-height: 1.5;
+  color: #111827;
+}
+
+/* The paused sentence, or a calm sentence when the wallet cannot load. */
+.notice {
+  margin: 0;
+  padding: 16px 20px;
+  border: 1px solid #d1d5db;
+  border-radius: 12px;
+  background: #f9fafb;
+  font-size: 1rem;
+  line-height: 1.5;
+}
+
+.form {
+  margin: 20px 0 0;
+  display: grid;
+}
+
+.label {
+  margin: 0 0 8px;
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+/* Tall enough to tap easily; 1rem text stops phones zooming in. */
+.input {
+  min-height: 52px;
+  padding: 12px 14px;
+  border: 1px solid #374151;
+  border-radius: 12px;
+  font-size: 1.25rem;
+  font-family: inherit;
+  color: #111827;
+  background: #ffffff;
+  font-variant-numeric: tabular-nums;
+}
+
+.input:focus-visible,
+.button:focus-visible,
+.back:focus-visible {
+  outline: 3px solid #2563eb;
+  outline-offset: 2px;
+}
+
+.hint {
+  margin: 8px 0 20px;
+  font-size: 0.875rem;
+  line-height: 1.4;
+  color: #4b5563;
+}
+
+/* "Add money": a full-width button, at least 52 px tall. */
+.button {
+  min-height: 52px;
+  padding: 12px 20px;
+  border: 0;
+  border-radius: 12px;
+  background: #14532d;
+  color: #ffffff;
+  font-size: 1.125rem;
+  font-weight: 700;
+  font-family: inherit;
+  cursor: pointer;
+}
+
+/* While the form is being sent. */
+.button:disabled {
+  background: #374151;
+  cursor: progress;
+}

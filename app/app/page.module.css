@@ -131,3 +131,46 @@
   line-height: 1.5;
   color: #111827;
 }
+
+/* The confirmation line at the top, after money has moved. */
+.confirmation {
+  margin: 0 0 16px;
+  padding: 14px 16px;
+  border: 1px solid #14532d;
+  border-radius: 12px;
+  background: #ffffff;
+  font-size: 1rem;
+  line-height: 1.5;
+  color: #111827;
+}
+
+/* "Add money", under the wallet card: a full-width button, at least
+ * 52 px tall, in the wallet's green. */
+.action {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 52px;
+  margin: 12px 0 0;
+  padding: 12px 20px;
+  border: 2px solid #14532d;
+  border-radius: 12px;
+  background: #ffffff;
+  color: #14532d;
+  font-size: 1.125rem;
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.action:focus-visible {
+  outline: 3px solid #2563eb;
+  outline-offset: 2px;
+}
+
+/* Shown instead of the button when money movement is paused. */
+.paused {
+  margin: 12px 0 0;
+  font-size: 0.875rem;
+  line-height: 1.4;
+  color: #4b5563;
+}
