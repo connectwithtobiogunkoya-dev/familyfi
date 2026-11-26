@@ -25,8 +25,9 @@
 -- START A SESSION
 -- ---------------------------------------------------------------------
 
--- start_session: creates one session row for a person. Used by sign-up,
--- straight after create_household, and by sign_in_with_code below.
+-- start_session: creates one session row for a person. Used by
+-- sign_in_with_code below. Sign-up does not use it: create_household
+-- starts the first session itself, in the same save.
 --   p_idle_days      the session ends after this many days without use
 --   p_absolute_days  the session ends after this many days whatever
 -- Gives back {"session_id": "<id>"}.
