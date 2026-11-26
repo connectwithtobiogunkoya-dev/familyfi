@@ -17,7 +17,7 @@ FamilyFi is a family finance app. Couples send money into a shared family wallet
 
 ## Words
 - Never use the words "fake" or "demo" in anything a visitor can see, or in new comments and file names. Use "test" or "simulated" instead.
-- Some existing names still use the old words only because they predate this rule, for example the constant DEMO_HOUSEHOLD_ID in lib/ledger.ts and lib/moves.ts, which Slice 5 removes.
+- The constant DEMO_HOUSEHOLD_ID has gone from lib/ledger.ts and lib/moves.ts; the household id now comes from lib/current-household.ts, which is temporary until Slice 5, step 11.
 
 ## Product direction
 
