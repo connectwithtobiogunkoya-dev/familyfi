@@ -183,7 +183,7 @@ describe("the original error text never reaches the visitor", () => {
   });
 
   it("an error full of secrets-looking text becomes the plain unknown sentence", () => {
-    const message = "connection to db.example.supabase.co failed for key sb_secret_abc123";
+    const message = "connection to db.example.supabase.co failed for key test_key_abc123XYZ789";
     const sentence = errorSentence(toErrorCode(new Error(message)));
     assert.equal(sentence, FIXED_SENTENCES.unknown);
   });
