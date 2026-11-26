@@ -144,14 +144,21 @@
   color: #111827;
 }
 
-/* "Add money", under the wallet card: a full-width button, at least
- * 52 px tall, in the wallet's green. */
+/* "Add money" and "Move money", stacked under the wallet card. */
+.actions {
+  margin: 12px 0 0;
+  display: grid;
+  gap: 12px;
+}
+
+/* One of those buttons: full width, at least 52 px tall, in the
+ * wallet's green. */
 .action {
   display: flex;
   align-items: center;
   justify-content: center;
   min-height: 52px;
-  margin: 12px 0 0;
+  margin: 0;
   padding: 12px 20px;
   border: 2px solid #14532d;
   border-radius: 12px;

@@ -8,7 +8,7 @@
 import { errorSentence } from "./errors.ts";
 
 /** Every notice there is. */
-export const NOTICE_CODES = ["added", "replayed"] as const;
+export const NOTICE_CODES = ["added", "moved", "replayed"] as const;
 
 export type NoticeCode = (typeof NOTICE_CODES)[number];
 
@@ -17,6 +17,8 @@ export function noticeSentence(code: NoticeCode): string {
   switch (code) {
     case "added":
       return "Money added to your wallet.";
+    case "moved":
+      return "Money moved.";
     case "replayed":
       // The same words as the "replayed" error code, kept in one place.
       return errorSentence("replayed");

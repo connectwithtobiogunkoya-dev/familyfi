@@ -103,12 +103,18 @@ export default async function AppHomePage({
             </span>
           </a>
 
-          {/* The way to Add money. When money movement is paused, the
-              button is replaced by the fixed paused sentence. */}
+          {/* The ways to Add money and Move money. When money movement is
+              paused, both buttons are replaced by the fixed paused
+              sentence. */}
           {canMoveMoney ? (
-            <a href="/app/add-money" className={styles.action}>
-              Add money
-            </a>
+            <div className={styles.actions}>
+              <a href="/app/add-money" className={styles.action}>
+                Add money
+              </a>
+              <a href="/app/move-money" className={styles.action}>
+                Move money
+              </a>
+            </div>
           ) : (
             <p className={styles.paused}>{errorSentence("writes_off")}</p>
           )}

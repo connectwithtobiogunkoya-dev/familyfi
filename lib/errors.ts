@@ -25,6 +25,7 @@ export const ERROR_CODES = [
   "replayed", // this exact request was already done
   "writes_off", // the kill switch is off: money movement is paused
   "ceiling", // the household already holds the most it is allowed to
+  "bad_accounts", // the same account twice, or a pair that is not wallet and pot
   "unknown", // anything else
 ] as const;
 
@@ -101,6 +102,8 @@ export function errorSentence(code: ErrorCode): string {
       return "Money movement is paused right now. Please try again later.";
     case "ceiling":
       return "This wallet has reached its limit, so no more money can be added.";
+    case "bad_accounts":
+      return "Choose two different accounts, and one of them must be the wallet.";
     default:
       // "unknown", and also any value that somehow is not on the list.
       return "We could not move the money right now. Please check the statement before trying again.";

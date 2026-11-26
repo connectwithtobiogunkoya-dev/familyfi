@@ -332,21 +332,41 @@ describe("account ids", () => {
 // ---------------------------------------------------------------------
 
 describe("moveMoney rules", () => {
-  const refusedMoves: Array<[label: string, from: string, to: string]> = [
+  // A pair the visitor chose badly: well-formed ids of accounts in the
+  // household, but the same one twice, or not wallet and pot. These are
+  // "bad_accounts", which the visitor can put right.
+  const badPairs: Array<[label: string, from: string, to: string]> = [
     ["bank to pot", BANK, RENT],
     ["bank to wallet (only Add money may do this)", BANK, WALLET],
     ["wallet to bank (wrong direction)", WALLET, BANK],
     ["pot to bank (wrong direction)", RENT, BANK],
     ["pot to pot", RENT, SCHOOL],
+    ["another pot to pot", GROCERIES, RENT],
     ["the same pot to itself", RENT, RENT],
     ["the wallet to itself", WALLET, WALLET],
+    ["the bank to itself", BANK, BANK],
+  ];
+
+  for (const [label, from, to] of badPairs) {
+    it(`${label} is refused as bad_accounts and nothing is posted`, async () => {
+      const db = new FakeDatabase();
+      const result = await runMoveMoney({ amount: "1000", fromAccountId: from, toAccountId: to, idempotencyKey: KEY }, db.deps());
+      assert.deepEqual(result, { status: "refused", code: "bad_accounts" });
+      assert.equal(db.posts.length, 0);
+    });
+  }
+
+  // An account that is not in this household at all is not something the
+  // screen ever offers, so it stays "unknown".
+  const notInHousehold: Array<[label: string, from: string, to: string]> = [
     ["an account that does not exist", WALLET, NO_SUCH_ACCOUNT],
     ["from an account that does not exist", NO_SUCH_ACCOUNT, WALLET],
     ["another household's pot", WALLET, OTHER_FAMILY_POT],
     ["from another household's pot", OTHER_FAMILY_POT, WALLET],
+    ["two accounts from another household", OTHER_FAMILY_POT, NO_SUCH_ACCOUNT],
   ];
 
-  for (const [label, from, to] of refusedMoves) {
+  for (const [label, from, to] of notInHousehold) {
     it(`${label} is refused as unknown and nothing is posted`, async () => {
       const db = new FakeDatabase();
       const result = await runMoveMoney({ amount: "1000", fromAccountId: from, toAccountId: to, idempotencyKey: KEY }, db.deps());
@@ -355,10 +375,48 @@ describe("moveMoney rules", () => {
     });
   }
 
-  it("the same account given twice is refused before the database is read", async () => {
+  it("the same account given twice is refused as bad_accounts before the database is read", async () => {
     const db = new FakeDatabase();
-    await runMoveMoney({ amount: "1000", fromAccountId: RENT, toAccountId: RENT.toUpperCase(), idempotencyKey: KEY }, db.deps());
+    const result = await runMoveMoney(
+      { amount: "1000", fromAccountId: RENT, toAccountId: RENT.toUpperCase(), idempotencyKey: KEY },
+      db.deps(),
+    );
+    assert.deepEqual(result, { status: "refused", code: "bad_accounts" });
     assert.equal(db.loads, 0);
+  });
+
+  it("the same account from another household twice is still bad_accounts (it is never looked up)", async () => {
+    const db = new FakeDatabase();
+    const result = await runMoveMoney(
+      { amount: "1000", fromAccountId: OTHER_FAMILY_POT, toAccountId: OTHER_FAMILY_POT, idempotencyKey: KEY },
+      db.deps(),
+    );
+    assert.deepEqual(result, { status: "refused", code: "bad_accounts" });
+  });
+
+  it("a badly formed id stays unknown even when the other id is the same text", async () => {
+    const db = new FakeDatabase();
+    const result = await runMoveMoney({ amount: "1000", fromAccountId: "x", toAccountId: "x", idempotencyKey: KEY }, db.deps());
+    assert.deepEqual(result, { status: "refused", code: "unknown" });
+  });
+
+  it("a bad key with a bad pair is unknown: the key is checked first", async () => {
+    const db = new FakeDatabase();
+    const result = await runMoveMoney({ amount: "1000", fromAccountId: RENT, toAccountId: SCHOOL, idempotencyKey: "nope" }, db.deps());
+    assert.deepEqual(result, { status: "refused", code: "unknown" });
+  });
+
+  it("a bad amount with a bad pair is the amount's code: the amount is checked first", async () => {
+    const db = new FakeDatabase();
+    const result = await runMoveMoney({ amount: "abc", fromAccountId: RENT, toAccountId: SCHOOL, idempotencyKey: KEY }, db.deps());
+    assert.deepEqual(result, { status: "refused", code: "bad_amount" });
+  });
+
+  it("a pot-to-pot pair is unknown when the accounts cannot be read, because the pair was never checked", async () => {
+    const db = new FakeDatabase();
+    db.loadFails = true;
+    const result = await runMoveMoney({ amount: "1000", fromAccountId: RENT, toAccountId: SCHOOL, idempotencyKey: KEY }, db.deps());
+    assert.deepEqual(result, { status: "refused", code: "unknown" });
   });
 
   it("wallet to pot is done, with the right entries and description", async () => {
@@ -768,6 +826,8 @@ describe("results never carry error text, account ids or secrets", () => {
     await run(() => {}, (deps) => runAddMoney({ amount: "1000", idempotencyKey: KEY }, deps));
     await run(() => {}, move("20,000", WALLET, RENT));
     await run(() => {}, move("1000", WALLET, OTHER_FAMILY_POT));
+    await run(() => {}, move("1000", RENT, SCHOOL));
+    await run(() => {}, move("1000", WALLET, WALLET));
     await run((db) => (db.writes = false), move("1000", WALLET, RENT));
     await run((db) => (db.loadFails = true), move("1000", WALLET, RENT));
     await run((db) => (db.script = ["nothing", "nothing"]), move("1000", WALLET, RENT));

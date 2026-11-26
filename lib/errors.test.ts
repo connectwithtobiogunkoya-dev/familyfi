@@ -31,14 +31,15 @@ const FIXED_SENTENCES: Record<ErrorCode, string> = {
   replayed: "That was already done. Nothing moved a second time.",
   writes_off: "Money movement is paused right now. Please try again later.",
   ceiling: "This wallet has reached its limit, so no more money can be added.",
+  bad_accounts: "Choose two different accounts, and one of them must be the wallet.",
   unknown: "We could not move the money right now. Please check the statement before trying again.",
 };
 
 describe("the fixed list of codes", () => {
-  it("has exactly these seven codes", () => {
+  it("has exactly these eight codes", () => {
     assert.deepEqual(
       [...ERROR_CODES],
-      ["not_enough", "bad_amount", "too_large", "replayed", "writes_off", "ceiling", "unknown"],
+      ["not_enough", "bad_amount", "too_large", "replayed", "writes_off", "ceiling", "bad_accounts", "unknown"],
     );
   });
 });

@@ -318,10 +318,15 @@ export async function runMoveMoney(input: MoveMoneyInput, deps: MoveDeps): Promi
     }
 
     // d. The account ids: properly formed, and two different accounts.
+    //    A badly formed id is "unknown"; the same account twice is
+    //    "bad_accounts", a choice the visitor can correct.
     const fromId = normaliseAccountId(input.fromAccountId);
     const toId = normaliseAccountId(input.toAccountId);
-    if (fromId === null || toId === null || fromId === toId) {
+    if (fromId === null || toId === null) {
       return refused("unknown");
+    }
+    if (fromId === toId) {
+      return refused("bad_accounts");
     }
 
     //    Then their kinds and names, from the database, in the one
@@ -338,8 +343,10 @@ export async function runMoveMoney(input: MoveMoneyInput, deps: MoveDeps): Promi
     }
 
     // e. Wallet to pot, or pot to wallet. Never the bank, never pot to pot.
+    //    An account not found in the household stays "unknown" above; a
+    //    found pair that breaks this rule is "bad_accounts".
     if (!isAllowedMove(from.kind, to.kind)) {
-      return refused("unknown");
+      return refused("bad_accounts");
     }
 
     return await post(deps, "moveMoney", {
