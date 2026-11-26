@@ -103,6 +103,6 @@ export function errorSentence(code: ErrorCode): string {
       return "This wallet has reached its limit, so no more money can be added.";
     default:
       // "unknown", and also any value that somehow is not on the list.
-      return "We could not move the money right now. Nothing was changed.";
+      return "We could not move the money right now. Please check the statement before trying again.";
   }
 }

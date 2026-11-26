@@ -31,7 +31,7 @@ const FIXED_SENTENCES: Record<ErrorCode, string> = {
   replayed: "That was already done. Nothing moved a second time.",
   writes_off: "Money movement is paused right now. Please try again later.",
   ceiling: "This wallet has reached its limit, so no more money can be added.",
-  unknown: "We could not move the money right now. Nothing was changed.",
+  unknown: "We could not move the money right now. Please check the statement before trying again.",
 };
 
 describe("the fixed list of codes", () => {
