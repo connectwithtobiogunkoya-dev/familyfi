@@ -249,8 +249,8 @@ async function post(deps: MoveDeps, label: string, request: PostRequest): Promis
 // Add money: from the household's bank account into its wallet
 // ---------------------------------------------------------------------
 
-// householdId is supplied by the caller, from getCurrentHouseholdId() on
-// the server. It is never read from the form: the input object has no
+// householdId is supplied by the caller: the signed-in person's own,
+// from their session on the server. It is never read from the form: the input object has no
 // household in it, and any extra field the form sends is ignored.
 export async function runAddMoney(householdId: unknown, input: AddMoneyInput, deps: MoveDeps): Promise<MoveResult> {
   try {
@@ -319,8 +319,8 @@ export async function runAddMoney(householdId: unknown, input: AddMoneyInput, de
 // Move money: wallet to pot, or pot to wallet
 // ---------------------------------------------------------------------
 
-// householdId is supplied by the caller, from getCurrentHouseholdId() on
-// the server. It is never read from the form: the input object has no
+// householdId is supplied by the caller: the signed-in person's own,
+// from their session on the server. It is never read from the form: the input object has no
 // household in it, and any extra field the form sends is ignored.
 export async function runMoveMoney(householdId: unknown, input: MoveMoneyInput, deps: MoveDeps): Promise<MoveResult> {
   try {

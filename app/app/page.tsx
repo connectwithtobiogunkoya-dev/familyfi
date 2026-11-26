@@ -12,10 +12,10 @@ import type { Metadata } from "next";
 import { connection } from "next/server";
 
 import { errorSentence } from "../../lib/errors";
-import { getCurrentHouseholdId } from "../../lib/current-household";
 import { getHouseholdBalances } from "../../lib/ledger";
 import { formatNaira } from "../../lib/money";
 import { readNotice } from "../../lib/notices";
+import { requireSession } from "../../lib/session";
 import { writesEnabled } from "../../lib/settings";
 import styles from "./page.module.css";
 
@@ -46,6 +46,11 @@ export default async function AppHomePage({
   // the same old balances to everyone afterwards.
   await connection();
 
+  // The signed-in person, before anything is read. With no session, this
+  // sends the visitor to /sign-in and nothing is read from the database.
+  // The household is always this person's own, from their session.
+  const person = await requireSession();
+
   // A confirmation from the address, such as ?notice=added. Only the exact
   // codes "added" and "replayed" are accepted, each as a fixed sentence.
   const notice = readNotice((await searchParams).notice);
@@ -55,7 +60,7 @@ export default async function AppHomePage({
   let pots: Card[] = [];
 
   try {
-    const balances = await getHouseholdBalances(getCurrentHouseholdId());
+    const balances = await getHouseholdBalances(person.householdId);
 
     for (const account of balances) {
       const card: Card = {
@@ -85,7 +90,12 @@ export default async function AppHomePage({
         </p>
       ) : null}
 
-      <h1 className={styles.family}>The Adeyemi Family</h1>
+      <div className={styles.header}>
+        <h1 className={styles.family}>{person.householdName}</h1>
+        <a href="/app/profile" className={styles.profileLink}>
+          Profile
+        </a>
+      </div>
 
       {wallet === null ? (
         <p className={styles.notice} role="status">

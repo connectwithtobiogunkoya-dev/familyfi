@@ -1,3 +1,8 @@
+-- A new database does not need this file. The app can no longer reach the
+-- household it makes (the Adeyemi family, retired in Slice 5, step 11):
+-- every household now comes from the signed-in person's session. The
+-- rows it made stay in the database.
+--
 -- FamilyFi: demo data
 --
 -- THIS IS DEMO DATA WITH FAKE MONEY. No real bank, no real naira.

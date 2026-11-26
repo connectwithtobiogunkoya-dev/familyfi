@@ -11,9 +11,9 @@ import type { Metadata } from "next";
 import { connection } from "next/server";
 
 import { errorSentence, readErrorCode } from "../../../lib/errors";
-import { getCurrentHouseholdId } from "../../../lib/current-household";
 import { getHouseholdBalances, type AccountBalance } from "../../../lib/ledger";
 import { formatNaira } from "../../../lib/money";
+import { requireSession } from "../../../lib/session";
 import { writesEnabled } from "../../../lib/settings";
 import { moveMoneyAction } from "./actions";
 import styles from "./page.module.css";
@@ -31,6 +31,11 @@ export default async function MoveMoneyPage({
   // Wait for a real visit, so the page (and its one-time key) is built
   // fresh every time and never served from a stored copy.
   await connection();
+
+  // The signed-in person, before anything is read. With no session, this
+  // sends the visitor to /sign-in and nothing is read from the database.
+  // The household is always this person's own, from their session.
+  const person = await requireSession();
 
   const backLink = (
     <a href="/app" className={styles.back}>
@@ -60,7 +65,7 @@ export default async function MoveMoneyPage({
   // returns the bank account, so it cannot appear anywhere on this screen.
   let accounts: AccountBalance[] = [];
   try {
-    accounts = await getHouseholdBalances(getCurrentHouseholdId());
+    accounts = await getHouseholdBalances(person.householdId);
   } catch {
     // The reason is written to the server log by the ledger reader.
     accounts = [];

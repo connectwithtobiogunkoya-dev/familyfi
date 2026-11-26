@@ -1,0 +1,63 @@
+/* Styles for the front page.
+ *
+ * Mobile first, matching the other screens: one column for a phone about
+ * 400 px wide, centred and never wider than 480 px. Every tap target is
+ * at least 52 px tall.
+ */
+
+.screen {
+  max-width: 480px;
+  margin: 0 auto;
+  color: #111827;
+}
+
+.title {
+  margin: 0 0 12px;
+  font-size: 2rem;
+  line-height: 1.2;
+  font-weight: 700;
+  color: #14532d;
+}
+
+.line {
+  margin: 0 0 24px;
+  font-size: 1.0625rem;
+  line-height: 1.5;
+}
+
+.buttons {
+  display: grid;
+  gap: 12px;
+}
+
+.primary,
+.secondary {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 52px;
+  padding: 12px 20px;
+  border-radius: 12px;
+  font-size: 1.125rem;
+  font-weight: 700;
+  text-decoration: none;
+  box-sizing: border-box;
+}
+
+/* "Create your household": full width, dark green. */
+.primary {
+  background: #14532d;
+  color: #ffffff;
+}
+
+/* "Sign in": outlined. */
+.secondary {
+  border: 2px solid #14532d;
+  color: #14532d;
+}
+
+.primary:focus-visible,
+.secondary:focus-visible {
+  outline: 3px solid #2563eb;
+  outline-offset: 2px;
+}

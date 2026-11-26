@@ -11,9 +11,9 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { connection } from "next/server";
 
-import { getCurrentHouseholdId } from "../../../../lib/current-household";
 import { getAccountStatement, STATEMENT_LINE_LIMIT, type AccountStatement } from "../../../../lib/ledger";
 import { formatNaira } from "../../../../lib/money";
+import { requireSession } from "../../../../lib/session";
 import { balancesAgree, describeAmount, formatStatementDate } from "../../../../lib/statement";
 import styles from "./page.module.css";
 
@@ -26,6 +26,11 @@ export default async function AccountStatementPage({ params }: { params: Promise
   // shows an old copy of the statement.
   await connection();
 
+  // The signed-in person, before anything is read. With no session, this
+  // sends the visitor to /sign-in and nothing is read from the database.
+  // The household is always this person's own, from their session.
+  const person = await requireSession();
+
   // In this version of Next.js the address parts arrive as a promise.
   // The id is only ever handed to getAccountStatement, which checks it.
   const { id } = await params;
@@ -34,7 +39,7 @@ export default async function AccountStatementPage({ params }: { params: Promise
   let failed = false;
 
   try {
-    statement = await getAccountStatement(getCurrentHouseholdId(), id);
+    statement = await getAccountStatement(person.householdId, id);
   } catch {
     // Whatever went wrong, the visitor sees only the calm sentence below.
     // The reason is written to the server's log by the ledger reader.

@@ -13,11 +13,41 @@
 }
 
 /* The family name at the top. */
-.family {
+/* The household's name, with the "Profile" link beside it. */
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
   margin: 0 0 20px;
+}
+
+.family {
+  margin: 0;
   font-size: 1.5rem;
   line-height: 1.3;
   font-weight: 700;
+  overflow-wrap: anywhere;
+}
+
+/* "Profile": tall enough to tap easily. */
+.profileLink {
+  display: inline-flex;
+  align-items: center;
+  flex: none;
+  min-height: 52px;
+  padding: 0 16px;
+  border: 2px solid #14532d;
+  border-radius: 12px;
+  color: #14532d;
+  font-size: 1rem;
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.profileLink:focus-visible {
+  outline: 3px solid #2563eb;
+  outline-offset: 2px;
 }
 
 /* The large wallet card: dark green with white text. It is a link to the

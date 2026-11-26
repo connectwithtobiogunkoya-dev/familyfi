@@ -5,28 +5,27 @@
 // "use server" means this runs only on the server. The browser can ask
 // for it to run, by submitting the form, but never sees or runs the code.
 // Anyone could also send that request by hand, so this action trusts
-// nothing: it passes the four form fields straight to moveMoney, which
-// does every check (kill switch, key, amount, accounts, the wallet-and-pot
-// rule).
+// nothing. The order of checks is in lib/money-actions-core.ts: the write
+// switch first, then the session, then every check in moveMoney (key,
+// amount, accounts, the wallet-and-pot rule). The household is the
+// signed-in person's own, from their session, never from the form.
 
 import { redirect } from "next/navigation";
 
-import { getCurrentHouseholdId } from "../../../lib/current-household";
+import { runMoveMoneyAction } from "../../../lib/money-actions-core";
 import { moveMoney } from "../../../lib/moves";
-import { pathAfterMoveMoney } from "../../../lib/redirects";
+import { getSession } from "../../../lib/session";
+import { writesEnabled } from "../../../lib/settings";
 
 export async function moveMoneyAction(formData: FormData): Promise<void> {
-  // Whatever the browser sent, as it sent it. moveMoney refuses anything
-  // that is missing or not in the right form.
-  // The household comes from the server, never from the form.
-  const result = await moveMoney(getCurrentHouseholdId(), {
-    amount: formData.get("amount"),
-    fromAccountId: formData.get("fromAccountId"),
-    toAccountId: formData.get("toAccountId"),
-    idempotencyKey: formData.get("idempotencyKey"),
+  const path = await runMoveMoneyAction(formData, {
+    writesEnabled: () => writesEnabled(),
+    getSession,
+    moveMoney,
   });
 
-  // moveMoney never throws, so there is no try block here. redirect works
-  // by stopping the action, which is why it must never sit inside one.
-  redirect(pathAfterMoveMoney(result));
+  // runMoveMoneyAction never throws, so there is no try block here.
+  // redirect works by stopping the action, which is why it must never sit
+  // inside one.
+  redirect(path);
 }

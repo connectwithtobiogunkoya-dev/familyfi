@@ -139,8 +139,8 @@ const realDeps: MoveDeps = {
 
 /**
  * Add money from the household's bank account into its wallet. The
- * household comes from the caller (getCurrentHouseholdId() on the
- * server), never from the form.
+ * household comes from the caller (the signed-in person's own, from
+ * their session on the server), never from the form.
  */
 export async function addMoney(householdId: string, input: AddMoneyInput): Promise<MoveResult> {
   return runAddMoney(householdId, input, realDeps);
@@ -148,8 +148,8 @@ export async function addMoney(householdId: string, input: AddMoneyInput): Promi
 
 /**
  * Move money from the wallet to a pot, or from a pot to the wallet, within
- * the household the caller gives (getCurrentHouseholdId() on the server),
- * never one from the form.
+ * the household the caller gives (the signed-in person's own, from their
+ * session on the server), never one from the form.
  */
 export async function moveMoney(householdId: string, input: MoveMoneyInput): Promise<MoveResult> {
   return runMoveMoney(householdId, input, realDeps);

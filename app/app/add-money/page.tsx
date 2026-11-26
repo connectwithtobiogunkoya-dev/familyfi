@@ -10,9 +10,9 @@ import type { Metadata } from "next";
 import { connection } from "next/server";
 
 import { errorSentence, readErrorCode } from "../../../lib/errors";
-import { getCurrentHouseholdId } from "../../../lib/current-household";
 import { getHouseholdBalances } from "../../../lib/ledger";
 import { formatNaira } from "../../../lib/money";
+import { requireSession } from "../../../lib/session";
 import { writesEnabled } from "../../../lib/settings";
 import { addMoneyAction } from "./actions";
 import styles from "./page.module.css";
@@ -30,6 +30,11 @@ export default async function AddMoneyPage({
   // Wait for a real visit, so the page (and its one-time key) is built
   // fresh every time and never served from a stored copy.
   await connection();
+
+  // The signed-in person, before anything is read. With no session, this
+  // sends the visitor to /sign-in and nothing is read from the database.
+  // The household is always this person's own, from their session.
+  const person = await requireSession();
 
   const backLink = (
     <a href="/app" className={styles.back}>
@@ -58,7 +63,7 @@ export default async function AddMoneyPage({
   // The wallet, read from the database: its name and its balance.
   let wallet: { name: string; balance: string } | null = null;
   try {
-    const account = (await getHouseholdBalances(getCurrentHouseholdId())).find((a) => a.kind === "wallet");
+    const account = (await getHouseholdBalances(person.householdId)).find((a) => a.kind === "wallet");
     wallet = account === undefined ? null : { name: account.name, balance: formatNaira(account.balance_kobo) };
   } catch {
     // The reason is written to the server log by the ledger reader.

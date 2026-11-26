@@ -17,7 +17,7 @@ FamilyFi is a family finance app. Couples send money into a shared family wallet
 
 ## Words
 - Never use the words "fake" or "demo" in anything a visitor can see, or in new comments and file names. Use "test" or "simulated" instead.
-- The constant DEMO_HOUSEHOLD_ID has gone from lib/ledger.ts and lib/moves.ts; the household id now comes from lib/current-household.ts, which is temporary until Slice 5, step 11.
+- The join is done (Slice 5, step 11): every page and money action takes the household id only from the signed-in person's session. lib/current-household.ts has gone.
 
 ## Product direction
 
@@ -46,7 +46,7 @@ FamilyFi is a family finance app. Couples send money into a shared family wallet
 - Every sign-up gets its own household: a hidden bank account, the Family Wallet, and three pots called Rent, School fees and Groceries, all at ₦0.00.
 - Every wallet and pot has a unique 10-digit test account number, made with the CBN NUBAN check digit and the bank code 000. The bank account has none.
 - Sign-ups are limited per visitor, per day and in total (numbers in docs/slice-5-plan.md).
-- The Adeyemi family, the seeded household used so far, is retired in Slice 5, step 11. Its rows stay in the database, but the app can no longer reach it.
+- The Adeyemi family, the seeded household used before Slice 5, is retired. Its rows stay in the database, but the app can no longer reach it.
 
 ### Test identity rules
 - Everything in the app is test money and test identity.
