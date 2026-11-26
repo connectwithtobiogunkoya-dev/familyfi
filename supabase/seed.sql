@@ -37,7 +37,7 @@ on conflict do nothing;
 -- Each has a fixed id, for the same reason as the household.
 insert into public.accounts (id, household_id, name, kind)
 values
-  ('b0000000-0000-4000-8000-000000000001', 'a0000000-0000-4000-8000-000000000001', 'Hearth Bank (fake)', 'bank_source'),
+  ('b0000000-0000-4000-8000-000000000001', 'a0000000-0000-4000-8000-000000000001', 'Hearth Bank', 'bank_source'),
   ('b0000000-0000-4000-8000-000000000002', 'a0000000-0000-4000-8000-000000000001', 'Family Wallet',      'wallet'),
   ('b0000000-0000-4000-8000-000000000003', 'a0000000-0000-4000-8000-000000000001', 'Rent',               'pot'),
   ('b0000000-0000-4000-8000-000000000004', 'a0000000-0000-4000-8000-000000000001', 'School fees',        'pot'),
@@ -111,7 +111,7 @@ select public.post_transaction(
 -- live from the entries. Expected, in kobo:
 --   Family Wallet         1,500,000
 --   Groceries             1,500,000
---   Hearth Bank (fake)  -10,000,000
+--   Hearth Bank         -10,000,000
 --   Rent                  4,000,000
 --   School fees           3,000,000
 -- These add up to zero, as they always must.
