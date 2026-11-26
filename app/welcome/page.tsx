@@ -17,6 +17,7 @@ import { signUpRefusalSentence } from "../../lib/auth-limits";
 import { getMyAccessCode, requireSession } from "../../lib/session";
 import { AccessCode } from "./access-code";
 import styles from "./page.module.css";
+import { SignOutButton } from "./sign-out-button";
 
 export const metadata: Metadata = {
   title: "FamilyFi",
@@ -53,6 +54,9 @@ export default async function WelcomePage() {
       <a href="/app" className={styles.button}>
         Go to my household
       </a>
+
+      {/* Temporary: step 10 moves this to the profile screen. */}
+      <SignOutButton />
     </div>
   );
 }

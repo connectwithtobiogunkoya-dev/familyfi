@@ -1,0 +1,105 @@
+/* Styles for the sign-in screen.
+ *
+ * Mobile first, matching the other screens: one column for a phone about
+ * 400 px wide, centred and never wider than 480 px. Every tap target is
+ * at least 52 px tall.
+ */
+
+.screen {
+  max-width: 480px;
+  margin: 0 auto;
+  color: #111827;
+}
+
+.title {
+  margin: 0 0 16px;
+  font-size: 1.5rem;
+  line-height: 1.3;
+  font-weight: 700;
+}
+
+.form {
+  display: grid;
+}
+
+.label {
+  margin: 0 0 8px;
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+/* Large, spaced letters so a code is easy to check while typing. */
+.input {
+  min-height: 52px;
+  padding: 12px 14px;
+  border: 1px solid #374151;
+  border-radius: 12px;
+  font-size: 1.25rem;
+  letter-spacing: 0.06em;
+  font-family: ui-monospace, "Cascadia Mono", Menlo, Consolas, monospace;
+  color: #111827;
+  background: #ffffff;
+  box-sizing: border-box;
+  width: 100%;
+  text-transform: uppercase;
+}
+
+.input[aria-invalid="true"] {
+  border-color: #9a3412;
+}
+
+/* The one general sentence, directly above the button. */
+.error {
+  margin: 16px 0 0;
+  padding: 14px 16px;
+  border: 1px solid #9a3412;
+  border-radius: 12px;
+  background: #ffffff;
+  font-size: 1rem;
+  line-height: 1.5;
+  color: #111827;
+}
+
+/* "Sign in": full width, dark green. */
+.button {
+  margin: 20px 0 0;
+  min-height: 52px;
+  padding: 12px 20px;
+  border: 0;
+  border-radius: 12px;
+  background: #14532d;
+  color: #ffffff;
+  font-size: 1.125rem;
+  font-weight: 700;
+  font-family: inherit;
+  cursor: pointer;
+}
+
+.button:disabled {
+  background: #374151;
+  cursor: progress;
+}
+
+/* "Create your household": an outlined link, tall enough to tap. */
+.link {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 16px 0 0;
+  min-height: 52px;
+  padding: 12px 20px;
+  border: 2px solid #14532d;
+  border-radius: 12px;
+  color: #14532d;
+  font-size: 1.125rem;
+  font-weight: 700;
+  text-decoration: none;
+  box-sizing: border-box;
+}
+
+.input:focus-visible,
+.button:focus-visible,
+.link:focus-visible {
+  outline: 3px solid #2563eb;
+  outline-offset: 2px;
+}

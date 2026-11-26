@@ -1,0 +1,29 @@
+/* The "Sign out" button: an outlined, full-width button, 52 px tall. */
+
+.form {
+  margin: 16px 0 0;
+  display: grid;
+}
+
+.button {
+  min-height: 52px;
+  padding: 12px 20px;
+  border: 2px solid #374151;
+  border-radius: 12px;
+  background: #ffffff;
+  color: #111827;
+  font-size: 1.125rem;
+  font-weight: 700;
+  font-family: inherit;
+  cursor: pointer;
+}
+
+.button:disabled {
+  cursor: progress;
+  color: #4b5563;
+}
+
+.button:focus-visible {
+  outline: 3px solid #2563eb;
+  outline-offset: 2px;
+}
