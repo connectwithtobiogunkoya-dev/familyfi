@@ -1,6 +1,6 @@
 # FamilyFi
 
-FamilyFi is a family finance app. Couples send money into a shared family wallet and allocate it to labelled pots (rent, school fees, groceries). Fake money only: this is a sandbox demo from Hearth Labs, not a bank.
+FamilyFi is a family finance app. Couples send money into a shared family wallet and allocate it to labelled pots (rent, school fees, groceries). Test money only: FamilyFi runs in a test environment from Hearth Labs. It is not a bank, and no real money moves.
 
 ## Money rules
 - Money is stored as whole kobo (integers, never decimals).
@@ -15,6 +15,10 @@ FamilyFi is a family finance app. Couples send money into a shared family wallet
 - Work only inside this folder. Never put secrets in the repository. .env files stay out of Git.
 - This Next.js version has breaking changes from older ones. Before writing Next.js code, check the docs in node_modules/next/dist/docs/, and say so in the plan.
 
+## Words
+- Never use the words "fake" or "demo" in anything a visitor can see, or in new comments and file names. Use "test" or "simulated" instead.
+- Some existing names still use the old words only because they predate this rule, for example the constant DEMO_HOUSEHOLD_ID in lib/ledger.ts and lib/moves.ts, which Slice 5 removes.
+
 ## Product direction
 
 ### Mobile first
@@ -23,36 +27,47 @@ FamilyFi is a family finance app. Couples send money into a shared family wallet
 - It is a web app, not a native app.
 
 ### Planned screens, in build order
-1. Home with balances (read only).
-2. Money in, and moving money between pots.
-3. Sign-up and login.
+1. Home with balances (read only). Built.
+2. Money in, and moving money between pots. Built.
+3. Sign-up and sign-in (Slice 5, see docs/slice-5-plan.md).
 4. Partner invite, with approvals and caps.
 5. Splash and onboarding polish, last.
 
 ### The user journey
 1. Splash screen with the FamilyFi logo.
-2. Demo notice: FamilyFi is a demo, nothing is real, and it exists to show the owner's banking and fintech skills.
-3. Sign-up: the visitor only chooses Husband or Wife. The app GENERATES everything else (name, address, NIN and BVN), with a Shuffle option.
+2. Test-environment notice: nothing is real, and FamilyFi exists to show the owner's banking and fintech skills.
+3. Sign-up: the visitor types their details (see "Test identity rules"), or taps "Fill in test details" to have every field filled with test values. A simulated identity check follows.
 4. Dashboard with a ₦0.00 wallet and empty pots.
-5. Add money: a button leads to a pretend bank screen where the visitor taps a preset amount. This posts a ledger transaction from the fake bank to the wallet through post_transaction.
+5. Add money: a button leads to a simulated bank screen where the visitor adds money. This posts a ledger transaction from the household's bank account to the wallet through post_transaction.
 6. Invite: the dashboard shows a banner, "You're the only one here yet. Send this link to your spouse."
-7. The spouse opens the link, gets a generated identity as the other role, and joins the same household.
+7. The spouse opens the link, signs up with their own test details as the other role, and joins the same household.
 
 ### Households
-- Every sign-up gets its own household with its own accounts.
-- Sign-ups need to be rate limited later.
+- Every sign-up gets its own household: a hidden bank account, the Family Wallet, and three pots called Rent, School fees and Groceries, all at ₦0.00.
+- Every wallet and pot has a unique 10-digit test account number, made with the CBN NUBAN check digit and the bank code 000. The bank account has none.
+- Sign-ups are limited per visitor, per day and in total (numbers in docs/slice-5-plan.md).
+- The Adeyemi family, the seeded household used so far, is retired in Slice 5, step 11. Its rows stay in the database, but the app can no longer reach it.
 
-### Fake identity rules
-- Everything in the app is fake money and fake identity.
-- The app generates fake NIN and BVN values in an obviously fake pattern that cannot belong to a real person (for example all starting with 000), labelled DEMO.
-- Visitors never type a NIN, BVN, address, real name or real email.
-- The app must never store real personal data.
-- Generated addresses use made-up street names.
+### Test identity rules
+- Everything in the app is test money and test identity.
+- Sign-up asks for: full name, phone, date of birth (18 or over), role (Husband or Wife), NIN and BVN.
+- Phone, NIN and BVN must be test numbers: 11 digits starting with 000. The customers table refuses anything else, so a real number can never be stored.
+- A NIN or BVN ending in 99 gives a "could not be verified" outcome, and nothing is created. Every other test number passes.
+- Names and dates of birth are free text. The form asks for made-up ones.
+- No address and no email are asked for.
+- The identity check is simulated, and is labelled that way on screen.
 
 ### Staying signed in and getting back in
 - Sign-up keeps the visitor signed in on that device automatically, with no checkbox.
-- Each person gets one short, memorable access code generated by the app (for example MANGO-RIVER-4821), always visible on a profile screen.
-- The login screen has one box to enter that code, so a visitor who cleared their browser or switched phone can get back into their existing account and progress without starting again.
-- There are no real passwords or emails.
-- This is a deliberate demo shortcut. A real banking app would use device binding and a PIN.
-- A "Use demo account" button on the login screen gives visitors a ready-made account.
+- Each person gets one access code generated by the app: 16 characters in four groups, for example K7QM-3XPD-9RTA-W2FH. It is always visible on their profile screen.
+- The sign-in screen has one box to enter that code, so a visitor who cleared their browser or switched phone can get back into their existing household.
+- There are no passwords or emails.
+- This is a deliberate shortcut for a test environment. A real banking app would use device binding and a PIN.
+
+## Slice 5 rules
+- Sessions: a random token in an HttpOnly cookie, with only the token's fingerprint (hash) stored in the database, so a session can be ended. Signing out ends the session in the database and deletes the cookie.
+- The household id is only ever taken from the signed-in person's session on the server. Never a fixed household, and never one named by the address or a form.
+- Every page and every server action checks the session itself. The proxy file is never the only check.
+- SIGNUPS_ENABLED is a separate switch from WRITES_ENABLED. Each is on only when set to exactly "true". Both stay off on the live site until the owner says otherwise.
+- The access code, NIN and BVN never appear in an address, a log line, an error message, a cached page, or the state a form action returns.
+- If a secret is missing, sign-up and sign-in fail closed with a plain sentence.
