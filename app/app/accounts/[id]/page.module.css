@@ -123,6 +123,15 @@
   font-variant-numeric: tabular-nums;
 }
 
+/* "by <full name>": who made the line, in small text. */
+.madeBy {
+  margin: 6px 0 0;
+  font-size: 0.875rem;
+  line-height: 1.4;
+  color: #4b5563;
+  overflow-wrap: anywhere;
+}
+
 /* "No entries yet." and the calm error sentence. */
 .notice {
   margin: 0;

@@ -96,17 +96,17 @@ function actions(session: SessionPerson | null | (() => never), writesOn = true)
   const add: AddMoneyActionDeps = {
     writesEnabled: () => writesOn,
     getSession,
-    addMoney: (householdId, input) => {
+    addMoney: (householdId, createdBy, input) => {
       moneyCalls += 1;
-      return runAddMoney(householdId, input, db.deps);
+      return runAddMoney(householdId, createdBy, input, db.deps);
     },
   };
   const move: MoveMoneyActionDeps = {
     writesEnabled: () => writesOn,
     getSession,
-    moveMoney: (householdId, input) => {
+    moveMoney: (householdId, createdBy, input) => {
       moneyCalls += 1;
-      return runMoveMoney(householdId, input, db.deps);
+      return runMoveMoney(householdId, createdBy, input, db.deps);
     },
   };
   return { add, move, db, sessionAsked: () => sessionAsked, moneyCalls: () => moneyCalls };

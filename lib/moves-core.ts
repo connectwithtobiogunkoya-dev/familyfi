@@ -49,13 +49,17 @@ export type HouseholdAccount = {
   balance_kobo: string;
 };
 
-/** One entry as post_transaction expects it: a JSON whole number of kobo. */
+/** One entry as post_transaction_by expects it: a JSON whole number of kobo. */
 export type LedgerEntry = { account_id: string; amount_kobo: number };
 
 export type PostRequest = {
   // The household the transaction belongs to: always the one the caller
   // gave runAddMoney or runMoveMoney, never one from the form.
   householdId: string;
+  // The member making it: always the one the caller gave, from the same
+  // session, never one from the form. post_transaction_by checks they are
+  // a member of the household.
+  createdBy: string;
   description: string;
   idempotencyKey: string;
   entries: LedgerEntry[];
@@ -66,7 +70,7 @@ export type LoadOutcome =
   | { kind: "loaded"; accounts: HouseholdAccount[] }
   | { kind: "failed"; code: string; message: string };
 
-/** What one call to post_transaction can give. */
+/** What one call to post_transaction_by can give. */
 export type PostOutcome =
   // The database answered and the transaction is saved: either just now,
   // or earlier under the same key (replayed).
@@ -153,7 +157,7 @@ export function ceilingAllows(totalKobo: bigint, amountKobo: bigint): boolean {
  * Money leaves "from" as a negative and arrives in "to" as a positive, so
  * the two always add up to exactly zero.
  *
- * post_transaction needs each amount as a JSON whole number, so the bigint
+ * post_transaction_by needs each amount as a JSON whole number, so the bigint
  * is turned into an ordinary number here. That is only exact up to
  * 9,007,199,254,740,991, so the amount is checked first: it must be more
  * than zero and at most 100,000,000 kobo. Anything else throws loudly,
@@ -249,10 +253,11 @@ async function post(deps: MoveDeps, label: string, request: PostRequest): Promis
 // Add money: from the household's bank account into its wallet
 // ---------------------------------------------------------------------
 
-// householdId is supplied by the caller: the signed-in person's own,
-// from their session on the server. It is never read from the form: the input object has no
-// household in it, and any extra field the form sends is ignored.
-export async function runAddMoney(householdId: unknown, input: AddMoneyInput, deps: MoveDeps): Promise<MoveResult> {
+// householdId and createdBy are supplied by the caller: the signed-in
+// person's own household and their own id, from their session on the
+// server. Neither is ever read from the form: the input object has no
+// household or person in it, and any extra field the form sends is ignored.
+export async function runAddMoney(householdId: unknown, createdBy: unknown, input: AddMoneyInput, deps: MoveDeps): Promise<MoveResult> {
   try {
     // a. The kill switch, before anything else.
     if (!deps.writesEnabled()) {
@@ -264,6 +269,13 @@ export async function runAddMoney(householdId: unknown, input: AddMoneyInput, de
     //    is not asked anything.
     const household = normaliseAccountId(householdId);
     if (household === null) {
+      return refused("unknown");
+    }
+
+    //    The person making it: a properly formed UUID too, or nothing is
+    //    done and the database is not asked anything.
+    const person = normaliseAccountId(createdBy);
+    if (person === null) {
       return refused("unknown");
     }
 
@@ -300,11 +312,14 @@ export async function runAddMoney(householdId: unknown, input: AddMoneyInput, de
       return refused("ceiling");
     }
 
-    // The same household goes to post_transaction. This check and the
-    // database's own refusal of entries on another household's accounts
-    // are two separate layers: either one alone would stop a mix-up.
+    // The same household, and the person, go to post_transaction_by. This
+    // check and the database's own refusal of entries on another
+    // household's accounts are two separate layers: either one alone would
+    // stop a mix-up. The database also refuses a person who is not a member
+    // of the household (not_member), which becomes "unknown".
     return await post(deps, "addMoney", {
       householdId: household,
+      createdBy: person,
       description: "Add money to the wallet",
       idempotencyKey: key,
       entries: buildEntries(banks[0].account_id, wallets[0].account_id, amount),
@@ -319,10 +334,11 @@ export async function runAddMoney(householdId: unknown, input: AddMoneyInput, de
 // Move money: wallet to pot, or pot to wallet
 // ---------------------------------------------------------------------
 
-// householdId is supplied by the caller: the signed-in person's own,
-// from their session on the server. It is never read from the form: the input object has no
-// household in it, and any extra field the form sends is ignored.
-export async function runMoveMoney(householdId: unknown, input: MoveMoneyInput, deps: MoveDeps): Promise<MoveResult> {
+// householdId and createdBy are supplied by the caller: the signed-in
+// person's own household and their own id, from their session on the
+// server. Neither is ever read from the form: the input object has no
+// household or person in it, and any extra field the form sends is ignored.
+export async function runMoveMoney(householdId: unknown, createdBy: unknown, input: MoveMoneyInput, deps: MoveDeps): Promise<MoveResult> {
   try {
     // a. The kill switch, before anything else.
     if (!deps.writesEnabled()) {
@@ -334,6 +350,13 @@ export async function runMoveMoney(householdId: unknown, input: MoveMoneyInput, 
     //    is not asked anything.
     const household = normaliseAccountId(householdId);
     if (household === null) {
+      return refused("unknown");
+    }
+
+    //    The person making it: a properly formed UUID too, or nothing is
+    //    done and the database is not asked anything.
+    const person = normaliseAccountId(createdBy);
+    if (person === null) {
       return refused("unknown");
     }
 
@@ -381,11 +404,14 @@ export async function runMoveMoney(householdId: unknown, input: MoveMoneyInput, 
       return refused("bad_accounts");
     }
 
-    // The same household goes to post_transaction. This check and the
-    // database's own refusal of entries on another household's accounts
-    // are two separate layers: either one alone would stop a mix-up.
+    // The same household, and the person, go to post_transaction_by. This
+    // check and the database's own refusal of entries on another
+    // household's accounts are two separate layers: either one alone would
+    // stop a mix-up. The database also refuses a person who is not a member
+    // of the household (not_member), which becomes "unknown".
     return await post(deps, "moveMoney", {
       householdId: household,
+      createdBy: person,
       description: `Move money from ${from.name} to ${to.name}`,
       idempotencyKey: key,
       entries: buildEntries(from.account_id, to.account_id, amount),

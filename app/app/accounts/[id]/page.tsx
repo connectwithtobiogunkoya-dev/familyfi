@@ -14,7 +14,7 @@ import { connection } from "next/server";
 import { getAccountStatement, STATEMENT_LINE_LIMIT, type AccountStatement } from "../../../../lib/ledger";
 import { formatNaira } from "../../../../lib/money";
 import { requireSession } from "../../../../lib/session";
-import { balancesAgree, describeAmount, formatStatementDate } from "../../../../lib/statement";
+import { balancesAgree, describeAmount, formatStatementDate, madeByLine } from "../../../../lib/statement";
 import styles from "./page.module.css";
 
 export const metadata: Metadata = {
@@ -85,6 +85,8 @@ export default async function AccountStatementPage({ params }: { params: Promise
         <ul className={styles.lines}>
           {lines.map((line, position) => {
             const amount = describeAmount(line.amount_kobo, formatNaira);
+            // "by <full name>", only when the view gave a name for this line.
+            const madeBy = madeByLine(line);
             return (
               // Lines have no id of their own, so their place in the list
               // tells them apart. The list never changes once drawn.
@@ -101,6 +103,7 @@ export default async function AccountStatementPage({ params }: { params: Promise
                     {amount.direction}
                   </p>
                 </div>
+                {madeBy !== null ? <p className={styles.madeBy}>{madeBy}</p> : null}
                 {showBalanceAfter ? (
                   <p className={styles.after}>Balance after: {formatNaira(line.balance_after_kobo)}</p>
                 ) : null}

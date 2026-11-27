@@ -79,7 +79,7 @@ const realReader: LedgerReader = {
     // is not sent back.
     const { data, error } = await connect()
       .from("account_statements")
-      .select("description, created_at, amount_kobo::text, balance_after_kobo::text")
+      .select("description, created_at, amount_kobo::text, balance_after_kobo::text, made_by_name")
       .eq("account_id", accountId)
       .eq("household_id", householdId)
       .order("seq", { ascending: false })

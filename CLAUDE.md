@@ -6,6 +6,7 @@ FamilyFi is a family finance app. Couples send money into a shared family wallet
 - Money is stored as whole kobo (integers, never decimals).
 - Balances are calculated from ledger entries, never stored.
 - Every transfer is double-entry, so its entries sum to zero.
+- The app posts every transaction through post_transaction_by, which records the member who made it (transactions.created_by) and refuses anyone outside the household. post_transaction is kept only for the live site's older code until the Slice 6 push; a later migration after the push retires it. No app code may call post_transaction.
 
 ## How we work
 - Show a plan before any code.
@@ -38,7 +39,7 @@ FamilyFi is a family finance app. Couples send money into a shared family wallet
 2. Test-environment notice: nothing is real, and FamilyFi exists to show the owner's banking and fintech skills.
 3. Sign-up: the visitor types their details (see "Test identity rules"), or taps "Fill in test details" to have every field filled with test values. A simulated identity check follows.
 4. Dashboard with a ₦0.00 wallet and empty pots.
-5. Add money: a button leads to a simulated bank screen where the visitor adds money. This posts a ledger transaction from the household's bank account to the wallet through post_transaction.
+5. Add money: a button leads to a simulated bank screen where the visitor adds money. This posts a ledger transaction from the household's bank account to the wallet through post_transaction_by.
 6. Invite: the dashboard shows a banner, "You're the only one here yet. Invite your partner from Household." The owner creates a one-time invite code there and sends it to their partner.
 7. The partner opens the Join page, types the invite code and their own test details (either role), and joins the same household.
 

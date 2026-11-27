@@ -45,6 +45,8 @@ const NO_SUCH_ACCOUNT = "eeeeeeee-0000-4000-8000-000000000000";
 
 // The two stand-in households. Every existing test uses household A.
 const HOUSEHOLD_A = "aaaaaaaa-0000-4000-8000-00000000000a";
+// The member making each transaction, as the session would give it.
+const PERSON_A = "cccccccc-0000-4000-8000-00000000000a";
 const HOUSEHOLD_B = "bbbbbbbb-0000-4000-8000-00000000000b";
 
 // Household B's own accounts, held by the stand-in alongside A's.
@@ -219,7 +221,7 @@ function sum(entries: LedgerEntry[]): bigint {
 describe("writes off: refused before any database call", () => {
   it("addMoney is refused as writes_off and the database is never called", async () => {
     const db = new StandInDatabase(seedAccounts(), false);
-    const result = await runAddMoney(HOUSEHOLD_A, { amount: "1000", idempotencyKey: KEY }, db.deps());
+    const result = await runAddMoney(HOUSEHOLD_A, PERSON_A, { amount: "1000", idempotencyKey: KEY }, db.deps());
     assert.deepEqual(result, { status: "refused", code: "writes_off" });
     assert.equal(db.loads, 0);
     assert.equal(db.posts.length, 0);
@@ -227,7 +229,7 @@ describe("writes off: refused before any database call", () => {
 
   it("moveMoney is refused as writes_off and the database is never called", async () => {
     const db = new StandInDatabase(seedAccounts(), false);
-    const result = await runMoveMoney(HOUSEHOLD_A, { amount: "1000", fromAccountId: WALLET, toAccountId: RENT, idempotencyKey: KEY }, db.deps());
+    const result = await runMoveMoney(HOUSEHOLD_A, PERSON_A, { amount: "1000", fromAccountId: WALLET, toAccountId: RENT, idempotencyKey: KEY }, db.deps());
     assert.deepEqual(result, { status: "refused", code: "writes_off" });
     assert.equal(db.loads, 0);
     assert.equal(db.posts.length, 0);
@@ -235,7 +237,7 @@ describe("writes off: refused before any database call", () => {
 
   it("writes_off wins even when every other input is bad", async () => {
     const db = new StandInDatabase(seedAccounts(), false);
-    const result = await runMoveMoney(HOUSEHOLD_A, { amount: "abc", fromAccountId: "x", toAccountId: "x", idempotencyKey: "nope" }, db.deps());
+    const result = await runMoveMoney(HOUSEHOLD_A, PERSON_A, { amount: "abc", fromAccountId: "x", toAccountId: "x", idempotencyKey: "nope" }, db.deps());
     assert.deepEqual(result, { status: "refused", code: "writes_off" });
     assert.equal(db.loads, 0);
   });
@@ -262,7 +264,7 @@ describe("amounts", () => {
   for (const [label, amount, code] of cases) {
     it(`addMoney: ${label} is refused as ${code}, without reading the database`, async () => {
       const db = new StandInDatabase();
-      const result = await runAddMoney(HOUSEHOLD_A, { amount, idempotencyKey: KEY }, db.deps());
+      const result = await runAddMoney(HOUSEHOLD_A, PERSON_A, { amount, idempotencyKey: KEY }, db.deps());
       assert.deepEqual(result, { status: "refused", code });
       assert.equal(db.loads, 0);
       assert.equal(db.posts.length, 0);
@@ -270,7 +272,7 @@ describe("amounts", () => {
 
     it(`moveMoney: ${label} is refused as ${code}, without reading the database`, async () => {
       const db = new StandInDatabase();
-      const result = await runMoveMoney(HOUSEHOLD_A, { amount, fromAccountId: WALLET, toAccountId: RENT, idempotencyKey: KEY }, db.deps());
+      const result = await runMoveMoney(HOUSEHOLD_A, PERSON_A, { amount, fromAccountId: WALLET, toAccountId: RENT, idempotencyKey: KEY }, db.deps());
       assert.deepEqual(result, { status: "refused", code });
       assert.equal(db.loads, 0);
     });
@@ -281,7 +283,7 @@ describe("amounts", () => {
       { account_id: BANK, name: "Hearth Bank", kind: "bank_source", balance_kobo: "0" },
       { account_id: WALLET, name: "Family Wallet", kind: "wallet", balance_kobo: "0" },
     ]);
-    const result = await runAddMoney(HOUSEHOLD_A, { amount: "1,000,000", idempotencyKey: KEY }, db.deps());
+    const result = await runAddMoney(HOUSEHOLD_A, PERSON_A, { amount: "1,000,000", idempotencyKey: KEY }, db.deps());
     assert.deepEqual(result, { status: "done" });
     assert.equal(db.balance(WALLET), BigInt(100000000));
   });
@@ -307,9 +309,9 @@ describe("idempotency keys", () => {
   for (const [label, key] of badKeys) {
     it(`${label} is refused as unknown, without reading the database`, async () => {
       const db = new StandInDatabase();
-      assert.deepEqual(await runAddMoney(HOUSEHOLD_A, { amount: "1000", idempotencyKey: key }, db.deps()), { status: "refused", code: "unknown" });
+      assert.deepEqual(await runAddMoney(HOUSEHOLD_A, PERSON_A, { amount: "1000", idempotencyKey: key }, db.deps()), { status: "refused", code: "unknown" });
       assert.deepEqual(
-        await runMoveMoney(HOUSEHOLD_A, { amount: "1000", fromAccountId: WALLET, toAccountId: RENT, idempotencyKey: key }, db.deps()),
+        await runMoveMoney(HOUSEHOLD_A, PERSON_A, { amount: "1000", fromAccountId: WALLET, toAccountId: RENT, idempotencyKey: key }, db.deps()),
         { status: "refused", code: "unknown" },
       );
       assert.equal(db.loads, 0);
@@ -319,13 +321,13 @@ describe("idempotency keys", () => {
 
   it("an uppercase key is sent as add-<lowercase>", async () => {
     const db = new StandInDatabase();
-    await runAddMoney(HOUSEHOLD_A, { amount: "1000", idempotencyKey: KEY.toUpperCase() }, db.deps());
+    await runAddMoney(HOUSEHOLD_A, PERSON_A, { amount: "1000", idempotencyKey: KEY.toUpperCase() }, db.deps());
     assert.equal(db.posts[0].idempotencyKey, `add-${KEY}`);
   });
 
   it("a move key is sent as move-<uuid>", async () => {
     const db = new StandInDatabase();
-    await runMoveMoney(HOUSEHOLD_A, { amount: "1000", fromAccountId: WALLET, toAccountId: RENT, idempotencyKey: KEY }, db.deps());
+    await runMoveMoney(HOUSEHOLD_A, PERSON_A, { amount: "1000", fromAccountId: WALLET, toAccountId: RENT, idempotencyKey: KEY }, db.deps());
     assert.equal(db.posts[0].idempotencyKey, `move-${KEY}`);
   });
 
@@ -350,14 +352,14 @@ describe("account ids", () => {
   for (const [label, id] of badIds) {
     it(`a "from" id that is ${label} is refused as unknown, without reading the database`, async () => {
       const db = new StandInDatabase();
-      const result = await runMoveMoney(HOUSEHOLD_A, { amount: "1000", fromAccountId: id, toAccountId: RENT, idempotencyKey: KEY }, db.deps());
+      const result = await runMoveMoney(HOUSEHOLD_A, PERSON_A, { amount: "1000", fromAccountId: id, toAccountId: RENT, idempotencyKey: KEY }, db.deps());
       assert.deepEqual(result, { status: "refused", code: "unknown" });
       assert.equal(db.loads, 0);
     });
 
     it(`a "to" id that is ${label} is refused as unknown, without reading the database`, async () => {
       const db = new StandInDatabase();
-      const result = await runMoveMoney(HOUSEHOLD_A, { amount: "1000", fromAccountId: WALLET, toAccountId: id, idempotencyKey: KEY }, db.deps());
+      const result = await runMoveMoney(HOUSEHOLD_A, PERSON_A, { amount: "1000", fromAccountId: WALLET, toAccountId: id, idempotencyKey: KEY }, db.deps());
       assert.deepEqual(result, { status: "refused", code: "unknown" });
       assert.equal(db.loads, 0);
     });
@@ -365,7 +367,7 @@ describe("account ids", () => {
 
   it("an id in uppercase is matched to the same account", async () => {
     const db = new StandInDatabase();
-    const result = await runMoveMoney(HOUSEHOLD_A, 
+    const result = await runMoveMoney(HOUSEHOLD_A, PERSON_A, 
       { amount: "1000", fromAccountId: WALLET.toUpperCase(), toAccountId: RENT.toUpperCase(), idempotencyKey: KEY },
       db.deps(),
     );
@@ -396,7 +398,7 @@ describe("moveMoney rules", () => {
   for (const [label, from, to] of badPairs) {
     it(`${label} is refused as bad_accounts and nothing is posted`, async () => {
       const db = new StandInDatabase();
-      const result = await runMoveMoney(HOUSEHOLD_A, { amount: "1000", fromAccountId: from, toAccountId: to, idempotencyKey: KEY }, db.deps());
+      const result = await runMoveMoney(HOUSEHOLD_A, PERSON_A, { amount: "1000", fromAccountId: from, toAccountId: to, idempotencyKey: KEY }, db.deps());
       assert.deepEqual(result, { status: "refused", code: "bad_accounts" });
       assert.equal(db.posts.length, 0);
     });
@@ -415,7 +417,7 @@ describe("moveMoney rules", () => {
   for (const [label, from, to] of notInHousehold) {
     it(`${label} is refused as unknown and nothing is posted`, async () => {
       const db = new StandInDatabase();
-      const result = await runMoveMoney(HOUSEHOLD_A, { amount: "1000", fromAccountId: from, toAccountId: to, idempotencyKey: KEY }, db.deps());
+      const result = await runMoveMoney(HOUSEHOLD_A, PERSON_A, { amount: "1000", fromAccountId: from, toAccountId: to, idempotencyKey: KEY }, db.deps());
       assert.deepEqual(result, { status: "refused", code: "unknown" });
       assert.equal(db.posts.length, 0);
     });
@@ -423,7 +425,7 @@ describe("moveMoney rules", () => {
 
   it("the same account given twice is refused as bad_accounts before the database is read", async () => {
     const db = new StandInDatabase();
-    const result = await runMoveMoney(HOUSEHOLD_A, 
+    const result = await runMoveMoney(HOUSEHOLD_A, PERSON_A, 
       { amount: "1000", fromAccountId: RENT, toAccountId: RENT.toUpperCase(), idempotencyKey: KEY },
       db.deps(),
     );
@@ -433,7 +435,7 @@ describe("moveMoney rules", () => {
 
   it("the same account from another household twice is still bad_accounts (it is never looked up)", async () => {
     const db = new StandInDatabase();
-    const result = await runMoveMoney(HOUSEHOLD_A, 
+    const result = await runMoveMoney(HOUSEHOLD_A, PERSON_A, 
       { amount: "1000", fromAccountId: OTHER_FAMILY_POT, toAccountId: OTHER_FAMILY_POT, idempotencyKey: KEY },
       db.deps(),
     );
@@ -442,32 +444,32 @@ describe("moveMoney rules", () => {
 
   it("a badly formed id stays unknown even when the other id is the same text", async () => {
     const db = new StandInDatabase();
-    const result = await runMoveMoney(HOUSEHOLD_A, { amount: "1000", fromAccountId: "x", toAccountId: "x", idempotencyKey: KEY }, db.deps());
+    const result = await runMoveMoney(HOUSEHOLD_A, PERSON_A, { amount: "1000", fromAccountId: "x", toAccountId: "x", idempotencyKey: KEY }, db.deps());
     assert.deepEqual(result, { status: "refused", code: "unknown" });
   });
 
   it("a bad key with a bad pair is unknown: the key is checked first", async () => {
     const db = new StandInDatabase();
-    const result = await runMoveMoney(HOUSEHOLD_A, { amount: "1000", fromAccountId: RENT, toAccountId: SCHOOL, idempotencyKey: "nope" }, db.deps());
+    const result = await runMoveMoney(HOUSEHOLD_A, PERSON_A, { amount: "1000", fromAccountId: RENT, toAccountId: SCHOOL, idempotencyKey: "nope" }, db.deps());
     assert.deepEqual(result, { status: "refused", code: "unknown" });
   });
 
   it("a bad amount with a bad pair is the amount's code: the amount is checked first", async () => {
     const db = new StandInDatabase();
-    const result = await runMoveMoney(HOUSEHOLD_A, { amount: "abc", fromAccountId: RENT, toAccountId: SCHOOL, idempotencyKey: KEY }, db.deps());
+    const result = await runMoveMoney(HOUSEHOLD_A, PERSON_A, { amount: "abc", fromAccountId: RENT, toAccountId: SCHOOL, idempotencyKey: KEY }, db.deps());
     assert.deepEqual(result, { status: "refused", code: "bad_amount" });
   });
 
   it("a pot-to-pot pair is unknown when the accounts cannot be read, because the pair was never checked", async () => {
     const db = new StandInDatabase();
     db.loadFails = true;
-    const result = await runMoveMoney(HOUSEHOLD_A, { amount: "1000", fromAccountId: RENT, toAccountId: SCHOOL, idempotencyKey: KEY }, db.deps());
+    const result = await runMoveMoney(HOUSEHOLD_A, PERSON_A, { amount: "1000", fromAccountId: RENT, toAccountId: SCHOOL, idempotencyKey: KEY }, db.deps());
     assert.deepEqual(result, { status: "refused", code: "unknown" });
   });
 
   it("wallet to pot is done, with the right entries and description", async () => {
     const db = new StandInDatabase();
-    const result = await runMoveMoney(HOUSEHOLD_A, { amount: "1,000.50", fromAccountId: WALLET, toAccountId: RENT, idempotencyKey: KEY }, db.deps());
+    const result = await runMoveMoney(HOUSEHOLD_A, PERSON_A, { amount: "1,000.50", fromAccountId: WALLET, toAccountId: RENT, idempotencyKey: KEY }, db.deps());
     assert.deepEqual(result, { status: "done" });
     assert.deepEqual(db.posts[0].entries, [
       { account_id: WALLET, amount_kobo: -100050 },
@@ -480,14 +482,14 @@ describe("moveMoney rules", () => {
 
   it("pot to wallet is done", async () => {
     const db = new StandInDatabase();
-    const result = await runMoveMoney(HOUSEHOLD_A, { amount: "500", fromAccountId: SCHOOL, toAccountId: WALLET, idempotencyKey: KEY }, db.deps());
+    const result = await runMoveMoney(HOUSEHOLD_A, PERSON_A, { amount: "500", fromAccountId: SCHOOL, toAccountId: WALLET, idempotencyKey: KEY }, db.deps());
     assert.deepEqual(result, { status: "done" });
     assert.equal(db.posts[0].description, "Move money from School fees to Family Wallet");
   });
 
   it("the names in the description come from the database, never the caller", async () => {
     const db = new StandInDatabase();
-    await runMoveMoney(HOUSEHOLD_A, 
+    await runMoveMoney(HOUSEHOLD_A, PERSON_A, 
       { amount: "500", fromAccountId: WALLET, toAccountId: RENT, idempotencyKey: KEY, name: "Hacked", kind: "pot" } as never,
       db.deps(),
     );
@@ -508,7 +510,7 @@ describe("moveMoney rules", () => {
 describe("addMoney rules", () => {
   it("goes from the bank to the wallet, with the fixed description", async () => {
     const db = new StandInDatabase();
-    const result = await runAddMoney(HOUSEHOLD_A, { amount: "10,000", idempotencyKey: KEY }, db.deps());
+    const result = await runAddMoney(HOUSEHOLD_A, PERSON_A, { amount: "10,000", idempotencyKey: KEY }, db.deps());
     assert.deepEqual(result, { status: "done" });
     assert.deepEqual(db.posts[0].entries, [
       { account_id: BANK, amount_kobo: -1000000 },
@@ -520,7 +522,7 @@ describe("addMoney rules", () => {
 
   it("accounts named by the caller are ignored", async () => {
     const db = new StandInDatabase();
-    await runAddMoney(HOUSEHOLD_A, { amount: "100", idempotencyKey: KEY, fromAccountId: RENT, toAccountId: SCHOOL } as never, db.deps());
+    await runAddMoney(HOUSEHOLD_A, PERSON_A, { amount: "100", idempotencyKey: KEY, fromAccountId: RENT, toAccountId: SCHOOL } as never, db.deps());
     assert.deepEqual(
       db.posts[0].entries.map((e) => e.account_id),
       [BANK, WALLET],
@@ -529,20 +531,20 @@ describe("addMoney rules", () => {
 
   it("a household with no wallet is refused as unknown", async () => {
     const db = new StandInDatabase(seedAccounts().filter((a) => a.kind !== "wallet"));
-    assert.deepEqual(await runAddMoney(HOUSEHOLD_A, { amount: "100", idempotencyKey: KEY }, db.deps()), { status: "refused", code: "unknown" });
+    assert.deepEqual(await runAddMoney(HOUSEHOLD_A, PERSON_A, { amount: "100", idempotencyKey: KEY }, db.deps()), { status: "refused", code: "unknown" });
     assert.equal(db.posts.length, 0);
   });
 
   it("a household with no bank account is refused as unknown", async () => {
     const db = new StandInDatabase(seedAccounts().filter((a) => a.kind !== "bank_source"));
-    assert.deepEqual(await runAddMoney(HOUSEHOLD_A, { amount: "100", idempotencyKey: KEY }, db.deps()), { status: "refused", code: "unknown" });
+    assert.deepEqual(await runAddMoney(HOUSEHOLD_A, PERSON_A, { amount: "100", idempotencyKey: KEY }, db.deps()), { status: "refused", code: "unknown" });
   });
 
   it("a household with two wallets is refused as unknown", async () => {
     const accounts = seedAccounts();
     accounts.push({ account_id: NO_SUCH_ACCOUNT, name: "Second Wallet", kind: "wallet", balance_kobo: "0" });
     const db = new StandInDatabase(accounts);
-    assert.deepEqual(await runAddMoney(HOUSEHOLD_A, { amount: "100", idempotencyKey: KEY }, db.deps()), { status: "refused", code: "unknown" });
+    assert.deepEqual(await runAddMoney(HOUSEHOLD_A, PERSON_A, { amount: "100", idempotencyKey: KEY }, db.deps()), { status: "refused", code: "unknown" });
   });
 });
 
@@ -566,25 +568,25 @@ describe("the household ceiling for Add money", () => {
 
   it("one kobo under the ceiling after adding: done", async () => {
     const db = new StandInDatabase(holding("199999900"));
-    assert.deepEqual(await runAddMoney(HOUSEHOLD_A, { amount: "0.99", idempotencyKey: KEY }, db.deps()), { status: "done" });
+    assert.deepEqual(await runAddMoney(HOUSEHOLD_A, PERSON_A, { amount: "0.99", idempotencyKey: KEY }, db.deps()), { status: "done" });
     assert.equal(db.balance(WALLET), BigInt(199999999));
   });
 
   it("exactly at the ceiling after adding: done", async () => {
     const db = new StandInDatabase(holding("199999900"));
-    assert.deepEqual(await runAddMoney(HOUSEHOLD_A, { amount: "1", idempotencyKey: KEY }, db.deps()), { status: "done" });
+    assert.deepEqual(await runAddMoney(HOUSEHOLD_A, PERSON_A, { amount: "1", idempotencyKey: KEY }, db.deps()), { status: "done" });
     assert.equal(db.balance(WALLET), BigInt(200000000));
   });
 
   it("one kobo over the ceiling after adding: refused as ceiling, nothing posted", async () => {
     const db = new StandInDatabase(holding("199999900"));
-    assert.deepEqual(await runAddMoney(HOUSEHOLD_A, { amount: "1.01", idempotencyKey: KEY }, db.deps()), { status: "refused", code: "ceiling" });
+    assert.deepEqual(await runAddMoney(HOUSEHOLD_A, PERSON_A, { amount: "1.01", idempotencyKey: KEY }, db.deps()), { status: "refused", code: "ceiling" });
     assert.equal(db.posts.length, 0);
   });
 
   it("already at the ceiling: even one kobo more is refused", async () => {
     const db = new StandInDatabase(holding("200000000"));
-    assert.deepEqual(await runAddMoney(HOUSEHOLD_A, { amount: "0.01", idempotencyKey: KEY }, db.deps()), { status: "refused", code: "ceiling" });
+    assert.deepEqual(await runAddMoney(HOUSEHOLD_A, PERSON_A, { amount: "0.01", idempotencyKey: KEY }, db.deps()), { status: "refused", code: "ceiling" });
   });
 
   it("the bank account's balance does not count towards the ceiling", () => {
@@ -612,14 +614,14 @@ describe("the household ceiling for Add money", () => {
       { account_id: WALLET, name: "Family Wallet", kind: "wallet", balance_kobo: "9007199254740993" },
       { account_id: RENT, name: "Rent", kind: "pot", balance_kobo: "-9007199054741093" },
     ]);
-    assert.deepEqual(await runAddMoney(HOUSEHOLD_A, { amount: "1", idempotencyKey: KEY }, exact.deps()), { status: "done" });
+    assert.deepEqual(await runAddMoney(HOUSEHOLD_A, PERSON_A, { amount: "1", idempotencyKey: KEY }, exact.deps()), { status: "done" });
 
     const over = new StandInDatabase([
       { account_id: BANK, name: "Hearth Bank", kind: "bank_source", balance_kobo: "0" },
       { account_id: WALLET, name: "Family Wallet", kind: "wallet", balance_kobo: "9007199254740993" },
       { account_id: RENT, name: "Rent", kind: "pot", balance_kobo: "-9007199054741092" },
     ]);
-    assert.deepEqual(await runAddMoney(HOUSEHOLD_A, { amount: "1", idempotencyKey: KEY }, over.deps()), { status: "refused", code: "ceiling" });
+    assert.deepEqual(await runAddMoney(HOUSEHOLD_A, PERSON_A, { amount: "1", idempotencyKey: KEY }, over.deps()), { status: "refused", code: "ceiling" });
   });
 
   it("ceilingAllows compares as whole kobo", () => {
@@ -631,7 +633,7 @@ describe("the household ceiling for Add money", () => {
   it("the ceiling does not apply to moving money between wallet and pots", async () => {
     const db = new StandInDatabase(holding("200000000"));
     assert.deepEqual(
-      await runMoveMoney(HOUSEHOLD_A, { amount: "1000", fromAccountId: WALLET, toAccountId: RENT, idempotencyKey: KEY }, db.deps()),
+      await runMoveMoney(HOUSEHOLD_A, PERSON_A, { amount: "1000", fromAccountId: WALLET, toAccountId: RENT, idempotencyKey: KEY }, db.deps()),
       { status: "done" },
     );
   });
@@ -678,10 +680,10 @@ describe("buildEntries", () => {
     const db = new StandInDatabase();
     const deps = db.deps();
     const keys = [KEY, KEY_2, "11111111-2222-4333-8444-555555555555", "66666666-7777-4888-9999-aaaaaaaaaaaa"];
-    await runAddMoney(HOUSEHOLD_A, { amount: "250.75", idempotencyKey: keys[0] }, deps);
-    await runMoveMoney(HOUSEHOLD_A, { amount: "1,000", fromAccountId: WALLET, toAccountId: GROCERIES, idempotencyKey: keys[1] }, deps);
-    await runMoveMoney(HOUSEHOLD_A, { amount: "0.01", fromAccountId: RENT, toAccountId: WALLET, idempotencyKey: keys[2] }, deps);
-    await runMoveMoney(HOUSEHOLD_A, { amount: "999.99", fromAccountId: WALLET, toAccountId: SCHOOL, idempotencyKey: keys[3] }, deps);
+    await runAddMoney(HOUSEHOLD_A, PERSON_A, { amount: "250.75", idempotencyKey: keys[0] }, deps);
+    await runMoveMoney(HOUSEHOLD_A, PERSON_A, { amount: "1,000", fromAccountId: WALLET, toAccountId: GROCERIES, idempotencyKey: keys[1] }, deps);
+    await runMoveMoney(HOUSEHOLD_A, PERSON_A, { amount: "0.01", fromAccountId: RENT, toAccountId: WALLET, idempotencyKey: keys[2] }, deps);
+    await runMoveMoney(HOUSEHOLD_A, PERSON_A, { amount: "999.99", fromAccountId: WALLET, toAccountId: SCHOOL, idempotencyKey: keys[3] }, deps);
     assert.equal(db.posts.length, 4);
     for (const request of db.posts) {
       assert.equal(sum(request.entries), BigInt(0));
@@ -702,8 +704,8 @@ describe("the same request twice", () => {
   it("addMoney: done the first time, replayed the second, money added once", async () => {
     const db = new StandInDatabase();
     const deps = db.deps();
-    assert.deepEqual(await runAddMoney(HOUSEHOLD_A, { amount: "1000", idempotencyKey: KEY }, deps), { status: "done" });
-    assert.deepEqual(await runAddMoney(HOUSEHOLD_A, { amount: "1000", idempotencyKey: KEY }, deps), { status: "replayed" });
+    assert.deepEqual(await runAddMoney(HOUSEHOLD_A, PERSON_A, { amount: "1000", idempotencyKey: KEY }, deps), { status: "done" });
+    assert.deepEqual(await runAddMoney(HOUSEHOLD_A, PERSON_A, { amount: "1000", idempotencyKey: KEY }, deps), { status: "replayed" });
     assert.equal(db.saved.length, 1);
     assert.equal(db.balance(WALLET), BigInt(1600000));
   });
@@ -712,33 +714,33 @@ describe("the same request twice", () => {
     const db = new StandInDatabase();
     const deps = db.deps();
     const input = { amount: "1000", fromAccountId: WALLET, toAccountId: RENT, idempotencyKey: KEY };
-    assert.deepEqual(await runMoveMoney(HOUSEHOLD_A, input, deps), { status: "done" });
-    assert.deepEqual(await runMoveMoney(HOUSEHOLD_A, input, deps), { status: "replayed" });
+    assert.deepEqual(await runMoveMoney(HOUSEHOLD_A, PERSON_A, input, deps), { status: "done" });
+    assert.deepEqual(await runMoveMoney(HOUSEHOLD_A, PERSON_A, input, deps), { status: "replayed" });
     assert.equal(db.balance(RENT), BigInt(4100000));
   });
 
   it("a new key for the same amount is a second, deliberate transfer", async () => {
     const db = new StandInDatabase();
     const deps = db.deps();
-    await runAddMoney(HOUSEHOLD_A, { amount: "1000", idempotencyKey: KEY }, deps);
-    assert.deepEqual(await runAddMoney(HOUSEHOLD_A, { amount: "1000", idempotencyKey: KEY_2 }, deps), { status: "done" });
+    await runAddMoney(HOUSEHOLD_A, PERSON_A, { amount: "1000", idempotencyKey: KEY }, deps);
+    assert.deepEqual(await runAddMoney(HOUSEHOLD_A, PERSON_A, { amount: "1000", idempotencyKey: KEY_2 }, deps), { status: "done" });
     assert.equal(db.balance(WALLET), BigInt(1700000));
   });
 
   it("the same key with a different amount is refused as unknown", async () => {
     const db = new StandInDatabase();
     const deps = db.deps();
-    await runAddMoney(HOUSEHOLD_A, { amount: "1000", idempotencyKey: KEY }, deps);
-    assert.deepEqual(await runAddMoney(HOUSEHOLD_A, { amount: "2000", idempotencyKey: KEY }, deps), { status: "refused", code: "unknown" });
+    await runAddMoney(HOUSEHOLD_A, PERSON_A, { amount: "1000", idempotencyKey: KEY }, deps);
+    assert.deepEqual(await runAddMoney(HOUSEHOLD_A, PERSON_A, { amount: "2000", idempotencyKey: KEY }, deps), { status: "refused", code: "unknown" });
     assert.equal(db.balance(WALLET), BigInt(1600000));
   });
 
   it("an add key and a move key never collide, even with the same UUID", async () => {
     const db = new StandInDatabase();
     const deps = db.deps();
-    await runAddMoney(HOUSEHOLD_A, { amount: "1000", idempotencyKey: KEY }, deps);
+    await runAddMoney(HOUSEHOLD_A, PERSON_A, { amount: "1000", idempotencyKey: KEY }, deps);
     assert.deepEqual(
-      await runMoveMoney(HOUSEHOLD_A, { amount: "1000", fromAccountId: WALLET, toAccountId: RENT, idempotencyKey: KEY }, deps),
+      await runMoveMoney(HOUSEHOLD_A, PERSON_A, { amount: "1000", fromAccountId: WALLET, toAccountId: RENT, idempotencyKey: KEY }, deps),
       { status: "done" },
     );
   });
@@ -748,7 +750,7 @@ describe("no answer from the database", () => {
   it("first attempt lands but its answer is lost; the retry says replayed: result is replayed, money moved once", async () => {
     const db = new StandInDatabase();
     db.script = ["lost", "real"];
-    const result = await runAddMoney(HOUSEHOLD_A, { amount: "1000", idempotencyKey: KEY }, db.deps());
+    const result = await runAddMoney(HOUSEHOLD_A, PERSON_A, { amount: "1000", idempotencyKey: KEY }, db.deps());
     assert.deepEqual(result, { status: "replayed" });
     assert.equal(db.posts.length, 2);
     assert.equal(db.posts[0].idempotencyKey, db.posts[1].idempotencyKey);
@@ -759,14 +761,14 @@ describe("no answer from the database", () => {
   it("first attempt never arrives; the retry saves it: result is done", async () => {
     const db = new StandInDatabase();
     db.script = ["nothing", "real"];
-    assert.deepEqual(await runAddMoney(HOUSEHOLD_A, { amount: "1000", idempotencyKey: KEY }, db.deps()), { status: "done" });
+    assert.deepEqual(await runAddMoney(HOUSEHOLD_A, PERSON_A, { amount: "1000", idempotencyKey: KEY }, db.deps()), { status: "done" });
     assert.equal(db.saved.length, 1);
   });
 
   it("no answer twice: refused as unknown, and only two attempts are made", async () => {
     const db = new StandInDatabase();
     db.script = ["nothing", "nothing", "real"];
-    assert.deepEqual(await runAddMoney(HOUSEHOLD_A, { amount: "1000", idempotencyKey: KEY }, db.deps()), { status: "refused", code: "unknown" });
+    assert.deepEqual(await runAddMoney(HOUSEHOLD_A, PERSON_A, { amount: "1000", idempotencyKey: KEY }, db.deps()), { status: "refused", code: "unknown" });
     assert.equal(db.posts.length, 2);
     assert.ok(db.logs.some((line) => line.includes("second try")));
   });
@@ -775,7 +777,7 @@ describe("no answer from the database", () => {
     const db = new StandInDatabase();
     db.script = ["throw", "real"];
     assert.deepEqual(
-      await runMoveMoney(HOUSEHOLD_A, { amount: "1000", fromAccountId: WALLET, toAccountId: RENT, idempotencyKey: KEY }, db.deps()),
+      await runMoveMoney(HOUSEHOLD_A, PERSON_A, { amount: "1000", fromAccountId: WALLET, toAccountId: RENT, idempotencyKey: KEY }, db.deps()),
       { status: "done" },
     );
     assert.equal(db.posts.length, 2);
@@ -783,14 +785,14 @@ describe("no answer from the database", () => {
 
   it("a database refusal is not retried", async () => {
     const db = new StandInDatabase();
-    await runMoveMoney(HOUSEHOLD_A, { amount: "999,999", fromAccountId: WALLET, toAccountId: RENT, idempotencyKey: KEY }, db.deps());
+    await runMoveMoney(HOUSEHOLD_A, PERSON_A, { amount: "999,999", fromAccountId: WALLET, toAccountId: RENT, idempotencyKey: KEY }, db.deps());
     assert.equal(db.posts.length, 1);
   });
 
   it("reading the accounts fails: refused as unknown, nothing posted, the code and message logged", async () => {
     const db = new StandInDatabase();
     db.loadFails = true;
-    assert.deepEqual(await runAddMoney(HOUSEHOLD_A, { amount: "1000", idempotencyKey: KEY }, db.deps()), { status: "refused", code: "unknown" });
+    assert.deepEqual(await runAddMoney(HOUSEHOLD_A, PERSON_A, { amount: "1000", idempotencyKey: KEY }, db.deps()), { status: "refused", code: "unknown" });
     assert.equal(db.posts.length, 0);
     assert.ok(db.logs.some((line) => line.startsWith("addMoney failed: PGRST000")));
   });
@@ -801,7 +803,7 @@ describe("no answer from the database", () => {
     deps.loadHouseholdAccounts = async () => {
       throw new Error("The server setting SUPABASE_URL is missing.");
     };
-    assert.deepEqual(await runAddMoney(HOUSEHOLD_A, { amount: "1000", idempotencyKey: KEY }, deps), { status: "refused", code: "unknown" });
+    assert.deepEqual(await runAddMoney(HOUSEHOLD_A, PERSON_A, { amount: "1000", idempotencyKey: KEY }, deps), { status: "refused", code: "unknown" });
   });
 });
 
@@ -812,27 +814,27 @@ describe("no answer from the database", () => {
 describe("not enough money", () => {
   it("moving more than the wallet holds is refused as not_enough", async () => {
     const db = new StandInDatabase();
-    const result = await runMoveMoney(HOUSEHOLD_A, { amount: "20,000", fromAccountId: WALLET, toAccountId: RENT, idempotencyKey: KEY }, db.deps());
+    const result = await runMoveMoney(HOUSEHOLD_A, PERSON_A, { amount: "20,000", fromAccountId: WALLET, toAccountId: RENT, idempotencyKey: KEY }, db.deps());
     assert.deepEqual(result, { status: "refused", code: "not_enough" });
     assert.equal(db.balance(WALLET), BigInt(1500000));
   });
 
   it("moving more than a pot holds is refused as not_enough", async () => {
     const db = new StandInDatabase();
-    const result = await runMoveMoney(HOUSEHOLD_A, { amount: "15,000.01", fromAccountId: GROCERIES, toAccountId: WALLET, idempotencyKey: KEY }, db.deps());
+    const result = await runMoveMoney(HOUSEHOLD_A, PERSON_A, { amount: "15,000.01", fromAccountId: GROCERIES, toAccountId: WALLET, idempotencyKey: KEY }, db.deps());
     assert.deepEqual(result, { status: "refused", code: "not_enough" });
   });
 
   it("moving exactly everything a pot holds is done", async () => {
     const db = new StandInDatabase();
-    const result = await runMoveMoney(HOUSEHOLD_A, { amount: "15,000", fromAccountId: GROCERIES, toAccountId: WALLET, idempotencyKey: KEY }, db.deps());
+    const result = await runMoveMoney(HOUSEHOLD_A, PERSON_A, { amount: "15,000", fromAccountId: GROCERIES, toAccountId: WALLET, idempotencyKey: KEY }, db.deps());
     assert.deepEqual(result, { status: "done" });
     assert.equal(db.balance(GROCERIES), BigInt(0));
   });
 
   it("the overdraft's code and message are logged", async () => {
     const db = new StandInDatabase();
-    await runMoveMoney(HOUSEHOLD_A, { amount: "20,000", fromAccountId: WALLET, toAccountId: RENT, idempotencyKey: KEY }, db.deps());
+    await runMoveMoney(HOUSEHOLD_A, PERSON_A, { amount: "20,000", fromAccountId: WALLET, toAccountId: RENT, idempotencyKey: KEY }, db.deps());
     assert.ok(db.logs.some((line) => line.startsWith("moveMoney failed: 23514 Not enough money")));
   });
 });
@@ -867,9 +869,9 @@ describe("results never carry error text, account ids or secrets", () => {
       results.push(await call(db.deps()));
     };
     const move = (amount: string, from: string, to: string) => (deps: MoveDeps) =>
-      runMoveMoney(HOUSEHOLD_A, { amount, fromAccountId: from, toAccountId: to, idempotencyKey: KEY }, deps);
+      runMoveMoney(HOUSEHOLD_A, PERSON_A, { amount, fromAccountId: from, toAccountId: to, idempotencyKey: KEY }, deps);
 
-    await run(() => {}, (deps) => runAddMoney(HOUSEHOLD_A, { amount: "1000", idempotencyKey: KEY }, deps));
+    await run(() => {}, (deps) => runAddMoney(HOUSEHOLD_A, PERSON_A, { amount: "1000", idempotencyKey: KEY }, deps));
     await run(() => {}, move("20,000", WALLET, RENT));
     await run(() => {}, move("1000", WALLET, OTHER_FAMILY_POT));
     await run(() => {}, move("1000", RENT, SCHOOL));
@@ -878,11 +880,11 @@ describe("results never carry error text, account ids or secrets", () => {
     await run((db) => (db.loadFails = true), move("1000", WALLET, RENT));
     await run((db) => (db.script = ["nothing", "nothing"]), move("1000", WALLET, RENT));
     await run((db) => (db.script = ["lost", "real"]), move("1000", WALLET, RENT));
-    await run(() => {}, (deps) => runAddMoney(HOUSEHOLD_A, { amount: "abc", idempotencyKey: KEY }, deps));
+    await run(() => {}, (deps) => runAddMoney(HOUSEHOLD_A, PERSON_A, { amount: "abc", idempotencyKey: KEY }, deps));
 
     const replay = new StandInDatabase();
-    await runAddMoney(HOUSEHOLD_A, { amount: "1000", idempotencyKey: KEY }, replay.deps());
-    results.push(await runAddMoney(HOUSEHOLD_A, { amount: "2000", idempotencyKey: KEY }, replay.deps()));
+    await runAddMoney(HOUSEHOLD_A, PERSON_A, { amount: "1000", idempotencyKey: KEY }, replay.deps());
+    results.push(await runAddMoney(HOUSEHOLD_A, PERSON_A, { amount: "2000", idempotencyKey: KEY }, replay.deps()));
     return results;
   }
 
@@ -914,7 +916,7 @@ describe("results never carry error text, account ids or secrets", () => {
 describe("households: one household can never reach another's money", () => {
   it("moving from A's wallet to one of B's pots is refused as unknown, nothing posted, B unchanged", async () => {
     const db = new StandInDatabase();
-    const result = await runMoveMoney(HOUSEHOLD_A, { amount: "1000", fromAccountId: WALLET, toAccountId: B_POT, idempotencyKey: KEY }, db.deps());
+    const result = await runMoveMoney(HOUSEHOLD_A, PERSON_A, { amount: "1000", fromAccountId: WALLET, toAccountId: B_POT, idempotencyKey: KEY }, db.deps());
     assert.deepEqual(result, { status: "refused", code: "unknown" });
     assert.equal(db.posts.length, 0);
     assert.equal(db.otherBalance(B_POT), BigInt(3000000));
@@ -924,7 +926,7 @@ describe("households: one household can never reach another's money", () => {
 
   it("moving from B's wallet to one of A's pots is refused as unknown, nothing posted, B unchanged", async () => {
     const db = new StandInDatabase();
-    const result = await runMoveMoney(HOUSEHOLD_A, { amount: "1000", fromAccountId: B_WALLET, toAccountId: RENT, idempotencyKey: KEY }, db.deps());
+    const result = await runMoveMoney(HOUSEHOLD_A, PERSON_A, { amount: "1000", fromAccountId: B_WALLET, toAccountId: RENT, idempotencyKey: KEY }, db.deps());
     assert.deepEqual(result, { status: "refused", code: "unknown" });
     assert.equal(db.posts.length, 0);
     assert.equal(db.otherBalance(B_WALLET), BigInt(6000000));
@@ -932,14 +934,14 @@ describe("households: one household can never reach another's money", () => {
 
   it("moving between two of B's accounts is refused for A", async () => {
     const db = new StandInDatabase();
-    const result = await runMoveMoney(HOUSEHOLD_A, { amount: "1000", fromAccountId: B_WALLET, toAccountId: B_POT, idempotencyKey: KEY }, db.deps());
+    const result = await runMoveMoney(HOUSEHOLD_A, PERSON_A, { amount: "1000", fromAccountId: B_WALLET, toAccountId: B_POT, idempotencyKey: KEY }, db.deps());
     assert.deepEqual(result, { status: "refused", code: "unknown" });
     assert.equal(db.posts.length, 0);
   });
 
   it("moving between A's own wallet and a pot of A still works, and posts once, for A", async () => {
     const db = new StandInDatabase();
-    const result = await runMoveMoney(HOUSEHOLD_A, { amount: "1000", fromAccountId: WALLET, toAccountId: RENT, idempotencyKey: KEY }, db.deps());
+    const result = await runMoveMoney(HOUSEHOLD_A, PERSON_A, { amount: "1000", fromAccountId: WALLET, toAccountId: RENT, idempotencyKey: KEY }, db.deps());
     assert.deepEqual(result, { status: "done" });
     assert.equal(db.posts.length, 1);
     assert.equal(db.saved.length, 1);
@@ -950,7 +952,7 @@ describe("households: one household can never reach another's money", () => {
 
   it("add money for A uses A's bank account and A's wallet, never B's, even though the stand-in holds both", async () => {
     const db = new StandInDatabase();
-    const result = await runAddMoney(HOUSEHOLD_A, { amount: "1000", idempotencyKey: KEY }, db.deps());
+    const result = await runAddMoney(HOUSEHOLD_A, PERSON_A, { amount: "1000", idempotencyKey: KEY }, db.deps());
     assert.deepEqual(result, { status: "done" });
     assert.deepEqual(
       db.posts[0].entries.map((e) => e.account_id),
@@ -963,7 +965,7 @@ describe("households: one household can never reach another's money", () => {
 
   it("add money for B uses B's own bank account and wallet", async () => {
     const db = new StandInDatabase();
-    const result = await runAddMoney(HOUSEHOLD_B, { amount: "1000", idempotencyKey: KEY }, db.deps());
+    const result = await runAddMoney(HOUSEHOLD_B, PERSON_A, { amount: "1000", idempotencyKey: KEY }, db.deps());
     assert.deepEqual(result, { status: "done" });
     assert.deepEqual(
       db.posts[0].entries.map((e) => e.account_id),
@@ -976,14 +978,14 @@ describe("households: one household can never reach another's money", () => {
   it("every read of the accounts is for the household given, and only that one", async () => {
     const db = new StandInDatabase();
     const deps = db.deps();
-    await runAddMoney(HOUSEHOLD_A, { amount: "1000", idempotencyKey: KEY }, deps);
-    await runMoveMoney(HOUSEHOLD_A, { amount: "500", fromAccountId: WALLET, toAccountId: RENT, idempotencyKey: KEY_2 }, deps);
+    await runAddMoney(HOUSEHOLD_A, PERSON_A, { amount: "1000", idempotencyKey: KEY }, deps);
+    await runMoveMoney(HOUSEHOLD_A, PERSON_A, { amount: "500", fromAccountId: WALLET, toAccountId: RENT, idempotencyKey: KEY_2 }, deps);
     assert.deepEqual(db.loadedHouseholds, [HOUSEHOLD_A, HOUSEHOLD_A]);
   });
 
   it("a household id in capitals is the same household", async () => {
     const db = new StandInDatabase();
-    const result = await runMoveMoney(HOUSEHOLD_A.toUpperCase(), { amount: "1000", fromAccountId: WALLET, toAccountId: RENT, idempotencyKey: KEY }, db.deps());
+    const result = await runMoveMoney(HOUSEHOLD_A.toUpperCase(), PERSON_A, { amount: "1000", fromAccountId: WALLET, toAccountId: RENT, idempotencyKey: KEY }, db.deps());
     assert.deepEqual(result, { status: "done" });
     assert.deepEqual(db.loadedHouseholds, [HOUSEHOLD_A]);
   });
@@ -993,7 +995,7 @@ describe("households: a household id sent with the form is ignored", () => {
   it("move money: an extra household_id set to B is ignored, and the move uses A", async () => {
     const db = new StandInDatabase();
     const input = { amount: "1000", fromAccountId: WALLET, toAccountId: RENT, idempotencyKey: KEY, household_id: HOUSEHOLD_B, household: HOUSEHOLD_B, householdId: HOUSEHOLD_B };
-    const result = await runMoveMoney(HOUSEHOLD_A, input as never, db.deps());
+    const result = await runMoveMoney(HOUSEHOLD_A, PERSON_A, input as never, db.deps());
     assert.deepEqual(result, { status: "done" });
     assert.deepEqual(db.loadedHouseholds, [HOUSEHOLD_A]);
     assert.equal(db.posts[0].householdId, HOUSEHOLD_A);
@@ -1002,7 +1004,7 @@ describe("households: a household id sent with the form is ignored", () => {
   it("move money: B's accounts with household_id set to B are still refused for A", async () => {
     const db = new StandInDatabase();
     const input = { amount: "1000", fromAccountId: B_WALLET, toAccountId: B_POT, idempotencyKey: KEY, household_id: HOUSEHOLD_B };
-    const result = await runMoveMoney(HOUSEHOLD_A, input as never, db.deps());
+    const result = await runMoveMoney(HOUSEHOLD_A, PERSON_A, input as never, db.deps());
     assert.deepEqual(result, { status: "refused", code: "unknown" });
     assert.equal(db.posts.length, 0);
     assert.equal(db.otherBalance(B_WALLET), BigInt(6000000));
@@ -1011,7 +1013,7 @@ describe("households: a household id sent with the form is ignored", () => {
   it("add money: an extra household_id set to B is ignored, and the money goes to A's wallet", async () => {
     const db = new StandInDatabase();
     const input = { amount: "1000", idempotencyKey: KEY, household_id: HOUSEHOLD_B };
-    const result = await runAddMoney(HOUSEHOLD_A, input as never, db.deps());
+    const result = await runAddMoney(HOUSEHOLD_A, PERSON_A, input as never, db.deps());
     assert.deepEqual(result, { status: "done" });
     assert.equal(db.posts[0].householdId, HOUSEHOLD_A);
     assert.equal(db.balance(WALLET), BigInt(1600000));
@@ -1033,9 +1035,9 @@ describe("households: a household id that is not a UUID", () => {
   for (const [label, value] of bad) {
     it(`${label} is refused as unknown, with no read and no post`, async () => {
       const db = new StandInDatabase();
-      assert.deepEqual(await runAddMoney(value, { amount: "1000", idempotencyKey: KEY }, db.deps()), { status: "refused", code: "unknown" });
+      assert.deepEqual(await runAddMoney(value, PERSON_A, { amount: "1000", idempotencyKey: KEY }, db.deps()), { status: "refused", code: "unknown" });
       assert.deepEqual(
-        await runMoveMoney(value, { amount: "1000", fromAccountId: WALLET, toAccountId: RENT, idempotencyKey: KEY }, db.deps()),
+        await runMoveMoney(value, PERSON_A, { amount: "1000", fromAccountId: WALLET, toAccountId: RENT, idempotencyKey: KEY }, db.deps()),
         { status: "refused", code: "unknown" },
       );
       assert.equal(db.loads, 0);
@@ -1045,6 +1047,6 @@ describe("households: a household id that is not a UUID", () => {
 
   it("the write switch is still checked first, even before the household", async () => {
     const db = new StandInDatabase(seedAccounts(), false);
-    assert.deepEqual(await runAddMoney("not-a-uuid", { amount: "1000", idempotencyKey: KEY }, db.deps()), { status: "refused", code: "writes_off" });
+    assert.deepEqual(await runAddMoney("not-a-uuid", PERSON_A, { amount: "1000", idempotencyKey: KEY }, db.deps()), { status: "refused", code: "writes_off" });
   });
 });

@@ -11,8 +11,9 @@
 //   2. The session. With no session, the answer is /sign-in, and nothing
 //      else happens: no database call and no money call.
 //   3. Every existing check, in lib/moves-core.ts, for the signed-in
-//      person's own household. The household is session.householdId,
-//      never anything from the form: only the named fields are read.
+//      person's own household. The household is session.householdId and
+//      the person making it is session.customerId, never anything from
+//      the form: only the named fields are read.
 
 import type { AddMoneyInput, MoveMoneyInput, MoveResult } from "./moves-core.ts";
 import { pathAfterAddMoney, pathAfterMoveMoney } from "./redirects.ts";
@@ -27,11 +28,11 @@ export type MoneyActionDeps = {
 };
 
 export type AddMoneyActionDeps = MoneyActionDeps & {
-  addMoney: (householdId: string, input: AddMoneyInput) => Promise<MoveResult>;
+  addMoney: (householdId: string, createdBy: string, input: AddMoneyInput) => Promise<MoveResult>;
 };
 
 export type MoveMoneyActionDeps = MoneyActionDeps & {
-  moveMoney: (householdId: string, input: MoveMoneyInput) => Promise<MoveResult>;
+  moveMoney: (householdId: string, createdBy: string, input: MoveMoneyInput) => Promise<MoveResult>;
 };
 
 const PAUSED: MoveResult = { status: "refused", code: "writes_off" };
@@ -61,7 +62,7 @@ export async function runAddMoneyAction(form: FormSource, deps: AddMoneyActionDe
 
   // 3. The existing checks, for this person's household only.
   try {
-    const result = await deps.addMoney(person.householdId, {
+    const result = await deps.addMoney(person.householdId, person.customerId, {
       amount: form.get("amount"),
       idempotencyKey: form.get("idempotencyKey"),
     });
@@ -86,7 +87,7 @@ export async function runMoveMoneyAction(form: FormSource, deps: MoveMoneyAction
 
   // 3. The existing checks, for this person's household only.
   try {
-    const result = await deps.moveMoney(person.householdId, {
+    const result = await deps.moveMoney(person.householdId, person.customerId, {
       amount: form.get("amount"),
       fromAccountId: form.get("fromAccountId"),
       toAccountId: form.get("toAccountId"),

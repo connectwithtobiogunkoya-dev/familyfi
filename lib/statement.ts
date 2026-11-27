@@ -21,6 +21,10 @@ export type StatementLine = {
   amount_kobo: string;
   // The account's balance straight after this line, as whole kobo text.
   balance_after_kobo: string;
+  // The full name of the member who made the line's transaction, exactly
+  // as the view gives it. Left out when the view gives none: older lines,
+  // and the bank side of adding money.
+  made_by_name?: string;
 };
 
 // A UUID is 36 characters: 32 hexadecimal digits in groups of 8-4-4-4-12,
@@ -87,8 +91,9 @@ function isWholeNumberText(value: unknown): value is string {
 
 /**
  * Check one row from the account_statements view and give it a known
- * shape. Only the four fields a statement line needs are kept; anything
- * else in the row (such as seq) is left behind.
+ * shape. Only the fields a statement line needs are kept: the four
+ * always there, and made_by_name when the view gives one. Anything else in
+ * the row (such as seq) is left behind.
  *
  * Throws if the row is not what the database should send, so a wrong
  * value can never reach the screen.
@@ -98,7 +103,7 @@ export function toStatementLine(row: unknown): StatementLine {
     throw new Error("The database returned a statement line in an unexpected form.");
   }
 
-  const { description, created_at, amount_kobo, balance_after_kobo } = row as Record<string, unknown>;
+  const { description, created_at, amount_kobo, balance_after_kobo, made_by_name } = row as Record<string, unknown>;
 
   if (
     typeof description !== "string" ||
@@ -110,7 +115,21 @@ export function toStatementLine(row: unknown): StatementLine {
     throw new Error("The database returned a statement line in an unexpected form.");
   }
 
-  return { description, created_at, amount_kobo, balance_after_kobo };
+  // Who made it: text from the view, or nothing. Anything else is refused.
+  if (made_by_name !== undefined && made_by_name !== null && typeof made_by_name !== "string") {
+    throw new Error("The database returned a statement line in an unexpected form.");
+  }
+
+  const line: StatementLine = { description, created_at, amount_kobo, balance_after_kobo };
+  if (typeof made_by_name === "string" && made_by_name.trim() !== "") {
+    line.made_by_name = made_by_name;
+  }
+  return line;
+}
+
+/** The small "by <full name>" line for a statement line, or null when the view gave no name. */
+export function madeByLine(line: StatementLine): string | null {
+  return line.made_by_name === undefined ? null : `by ${line.made_by_name}`;
 }
 
 // ---------------------------------------------------------------------

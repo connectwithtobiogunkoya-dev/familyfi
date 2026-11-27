@@ -287,8 +287,20 @@ that becomes worth knowing, but it changes the ledger, so the options:
 (step 9 in section I), so it can be dropped without touching the rest. It
 is the simplest correct record, the database enforces it, and attribution
 is what a shared account is expected to have. Null is allowed only for
-rows from before the change; post_transaction refuses a new transaction
-with no member.
+rows from before the change.
+
+**As built (steps 7 and 8).** The live site still ran the older code, which
+calls post_transaction, while this was built, so post_transaction was left
+exactly as it was. Migration 20261127140000 adds a new function,
+post_transaction_by: it takes post_transaction's four arguments plus the
+member making the transaction, refuses anyone who is not a member of that
+household (not_member), records the member as created_by, and then calls
+post_transaction unchanged for every other rule. From step 8 the app calls
+post_transaction_by only (a test fails if any non-test app file names
+post_transaction). post_transaction is kept only for the live code until
+the Slice 6 push; a later migration after the push retires it. Statements
+show "by <full name>" from the view's made_by_name, and nothing for older
+lines or the bank side.
 
 ## G. Session and privacy
 
@@ -391,9 +403,11 @@ build` both pass in the same session. Nothing is pushed until you say so.
 7. **Links and banner.** "I have an invite code" on / and /sign-in; the
    owner-alone banner on /app.
 8. **Hand checks** with two browsers, locally.
-9. **Ledger attribution (if option 2 is chosen).** Migration 3 (*run by
-   Tobi*), the post_transaction change and its grants, the app passing the
-   session's customer id, statements showing the member's first name.
+9. **Ledger attribution (option 2, chosen).** The made-by migration and
+   its grants (*run by Tobi*), adding post_transaction_by with
+   post_transaction left unchanged; the app passing the session's customer
+   id to post_transaction_by; statements showing "by <full name>". Built in
+   steps 7 and 8. A later migration after the push retires post_transaction.
 10. **Final checks** (the same as Slice 5 step 13), then push when you say,
     with SIGNUPS_ENABLED still off until you decide.
 

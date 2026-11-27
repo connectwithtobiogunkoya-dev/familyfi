@@ -98,18 +98,21 @@ const realDeps: MoveDeps = {
     return { kind: "loaded", accounts };
   },
 
-  // Call post_transaction. The entries go as JSON, with each amount as a
-  // JSON whole number, which is what post_transaction checks for.
+  // Call post_transaction_by, which records who made the transaction. The
+  // entries go as JSON, with each amount as a JSON whole number, which is
+  // what post_transaction_by checks for.
   async postTransaction(request: PostRequest): Promise<PostOutcome> {
     const { data, error, status } = await connect()
-      .rpc("post_transaction", {
-        // The same household the accounts were read for. post_transaction
+      .rpc("post_transaction_by", {
+        // The same household the accounts were read for. post_transaction_by
         // also refuses any entry on another household's account: a second,
         // separate layer.
         p_household_id: request.householdId,
         p_description: request.description,
         p_idempotency_key: request.idempotencyKey,
         p_entries: request.entries,
+        // The member making it, from the same session as the household.
+        p_created_by: request.createdBy,
       })
       .abortSignal(AbortSignal.timeout(DATABASE_TIMEOUT_MS));
 
@@ -127,7 +130,7 @@ const realDeps: MoveDeps = {
     if (answer === null || typeof answer.transaction_id !== "string" || typeof answer.replayed !== "boolean") {
       // The database answered, but not in the expected shape. It is not
       // safe to say whether anything was saved, so this is refused.
-      return { kind: "database_error", code: "bad_answer", message: "post_transaction gave an answer in an unexpected form." };
+      return { kind: "database_error", code: "bad_answer", message: "post_transaction_by gave an answer in an unexpected form." };
     }
     return { kind: "posted", replayed: answer.replayed };
   },
@@ -142,8 +145,8 @@ const realDeps: MoveDeps = {
  * household comes from the caller (the signed-in person's own, from
  * their session on the server), never from the form.
  */
-export async function addMoney(householdId: string, input: AddMoneyInput): Promise<MoveResult> {
-  return runAddMoney(householdId, input, realDeps);
+export async function addMoney(householdId: string, createdBy: string, input: AddMoneyInput): Promise<MoveResult> {
+  return runAddMoney(householdId, createdBy, input, realDeps);
 }
 
 /**
@@ -151,6 +154,6 @@ export async function addMoney(householdId: string, input: AddMoneyInput): Promi
  * the household the caller gives (the signed-in person's own, from their
  * session on the server), never one from the form.
  */
-export async function moveMoney(householdId: string, input: MoveMoneyInput): Promise<MoveResult> {
-  return runMoveMoney(householdId, input, realDeps);
+export async function moveMoney(householdId: string, createdBy: string, input: MoveMoneyInput): Promise<MoveResult> {
+  return runMoveMoney(householdId, createdBy, input, realDeps);
 }
