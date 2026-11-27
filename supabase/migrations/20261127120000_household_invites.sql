@@ -301,7 +301,11 @@ revoke all on table public.household_invites from service_role;
 grant select, insert, update on table public.household_invites to service_role;
 
 -- The rule functions run only as triggers. Nobody needs to call them
--- directly, so nobody is given that right, not even service_role.
+-- directly, so the right is taken from public, anon and authenticated.
+-- service_role may still hold it through Supabase's own defaults; that is
+-- harmless, because Postgres refuses to run a trigger function except as
+-- a trigger. (Comment reworded after this file was run; the SQL is
+-- unchanged.)
 revoke execute on function public.household_invite_creator_is_owner()
   from public, anon, authenticated;
 revoke execute on function public.household_invite_changes_are_limited()
