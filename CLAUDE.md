@@ -30,7 +30,7 @@ FamilyFi is a family finance app. Couples send money into a shared family wallet
 1. Home with balances (read only). Built.
 2. Money in, and moving money between pots. Built.
 3. Sign-up and sign-in (Slice 5, see docs/slice-5-plan.md).
-4. Partner invite, with approvals and caps.
+4. Partner invite by a one-time code (Slice 6, see docs/slice-6-plan.md). The partner has the same money rights as the owner. Partner approvals and caps are a later slice.
 5. Splash and onboarding polish, last.
 
 ### The user journey
@@ -39,8 +39,8 @@ FamilyFi is a family finance app. Couples send money into a shared family wallet
 3. Sign-up: the visitor types their details (see "Test identity rules"), or taps "Fill in test details" to have every field filled with test values. A simulated identity check follows.
 4. Dashboard with a ₦0.00 wallet and empty pots.
 5. Add money: a button leads to a simulated bank screen where the visitor adds money. This posts a ledger transaction from the household's bank account to the wallet through post_transaction.
-6. Invite: the dashboard shows a banner, "You're the only one here yet. Send this link to your spouse."
-7. The spouse opens the link, signs up with their own test details as the other role, and joins the same household.
+6. Invite: the dashboard shows a banner, "You're the only one here yet. Invite your partner from Household." The owner creates a one-time invite code there and sends it to their partner.
+7. The partner opens the Join page, types the invite code and their own test details (either role), and joins the same household.
 
 ### Households
 - Every sign-up gets its own household: a hidden bank account, the Family Wallet, and three pots called Rent, School fees and Groceries, all at ₦0.00.

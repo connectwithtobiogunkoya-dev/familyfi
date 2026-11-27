@@ -1,7 +1,7 @@
 # Slice 6 plan: a partner joins the household
 
-Status: proposal for the owner to decide. No code, no migration and no
-push until the decisions in section L are made.
+Status: approved, with the answers recorded in section L. Building step
+by step; nothing is pushed until the owner says so.
 
 ## Goal
 
@@ -26,6 +26,25 @@ same household's money, each with their own access code and session.
 - At most two members per household: one owner, one partner. One household
   per customer stays.
 - SIGNUPS_ENABLED also gates joining.
+
+## Decisions made after the first draft
+
+- Roles: any role is allowed. The partner may choose the same role as the
+  owner. There is no role rule anywhere.
+- Banner: "You're the only one here yet. Invite your partner from
+  Household." (a code, not a link).
+- Invite codes are locked with the existing ACCESS_CODE_ENCRYPTION_KEY.
+  No new secret. The owner may see an unused code again.
+- Partner approvals and caps are a later slice. In this slice the partner
+  has the same money rights as the owner.
+- Ledger: option 2, a nullable `created_by` on transactions, as its own
+  late step (step 9).
+- The invite lives on a new `/app/household` screen.
+- Limits as proposed: wrong invite codes 5 per 15 minutes and 20 per 24
+  hours per visitor; 10 invites per household per day; joins share the
+  sign-up limits (3 per visitor per 24 hours, 50 per day, 300 customers in
+  total).
+- Every proposed visitor sentence in section J is approved.
 
 ## What exists today that this slice builds on
 
@@ -81,14 +100,9 @@ Rules, as constraints and triggers in the same style as Slice 5:
   the active code again. The copy is wiped (set to null) the moment the
   invite is used, voided or found expired, so a used code can never be
   shown or recovered.
-- **Which key** (question L3): I recommend the same
-  `ACCESS_CODE_ENCRYPTION_KEY` and key versions, so no new secret is
-  needed. Each locking uses a fresh random IV, so sharing the key is safe.
-  The alternative is a separate `INVITE_ENCRYPTION_KEY`: cleaner
-  separation, but one more secret for you to make and put on Vercel.
-- The option of not storing a locked copy (show once only, like a
-  password reset link) is simpler but means a lost code needs a new one.
-  Because a new one voids the old, that is also acceptable.
+- **Which key (decided):** the existing `ACCESS_CODE_ENCRYPTION_KEY` and
+  its key versions, so no new secret is needed. Each locking uses a fresh
+  random IV, so sharing the key is safe.
 
 ### Other database changes
 
@@ -156,11 +170,10 @@ One save, in this order:
    create_household takes, so the totals cannot race). Check the sign-up
    limits (see C): `limit_visitor`, `limit_daily`, `limit_total`.
 7. Refuse `household_full` if a partner already exists (should not happen
-   while the invite is unused, but the race is closed here).
-8. If the owner's role must be different (question L1): refuse
-   `same_role` when the partner chose the same role as the owner.
-9. `code_taken` if the access code fingerprint is in use.
-10. Create the customer, the membership as `partner`, the access code, one
+   while the invite is unused, but the race is closed here). There is no
+   role rule: the partner may choose either role.
+8. `code_taken` if the access code fingerprint is in use.
+9. Create the customer, the membership as `partner`, the access code, one
     `sign_up` row in auth_attempts and the first session; mark the invite
     used (`used_at`, `used_by`) and wipe its locked copy.
 
@@ -242,10 +255,9 @@ beside "Profile".
 
 ### `/app` banner for an owner on their own
 
-CLAUDE.md's journey has a banner, "You're the only one here yet. Send this
-link to your spouse." The decision is a code, not a link, so the wording
-needs to change (question L2). Proposed: shown to the owner while there is
-no partner, with a link to `/app/household`.
+Shown to the owner while there is no partner, with a link to
+`/app/household`: "You're the only one here yet. Invite your partner from
+Household." (approved; CLAUDE.md now says a code, not a link).
 
 ## E. Members on screen
 
@@ -343,7 +355,7 @@ with no member.
 ### By hand (Tobi, two browsers)
 
 1. Browser A: sign up; open Household; create an invite; copy it.
-2. Browser B: open /join; paste; fill in test details as the other role;
+2. Browser B: open /join; paste; fill in test details (either role);
    join; see your own access code on /welcome; go to the household.
 3. Both browsers show the same balances. Add money in B; A sees it.
 4. B opens Household: two members, no invite section.
@@ -395,8 +407,6 @@ Join page:
   "That invite code did not work. Check it with your partner and try
   again."
 - `household_full`: the same sentence as `invite_not_valid`.
-- `same_role` (if L1 is yes): "Your partner has already chosen that role.
-  Please choose the other one."
 - `too_many_attempts`: the existing "Too many attempts. Please wait 15
   minutes and try again."
 - `bad_details`, `not_verified`, `under_18`, `limit_*`, unknown: the
@@ -410,7 +420,14 @@ Household screen:
 - Member labels: "Owner", "Partner", "(you)"
 - Button: "Create an invite code"; while sending, "Creating..."
 - With an active code: "Send this code to your partner. It works once, for
-  48 hours." and "Stops working: <date and time>"
+  48 hours." and "Stops working: <date and time>". The date and time are
+  always Lagos time, never the server's clock: the database gives
+  `expires_at` as a moment, and the app formats it with
+  `Intl.DateTimeFormat("en-GB", { timeZone: "Africa/Lagos", day:
+  "numeric", month: "long", year: "numeric", hour: "2-digit", minute:
+  "2-digit", hourCycle: "h23" })`, for example "Stops working: 29 November
+  2026, 14:05". A 24-hour clock, so there is no am or pm to misread. A
+  test pins the result for a moment near midnight in Lagos.
 - Button: "Create a new code", with the note "A new code stops the old one
   working."
 - `not_owner`: "Only the person who created the household can invite a
@@ -420,7 +437,7 @@ Household screen:
   again tomorrow."
 - If the code cannot be shown: the existing unknown sentence.
 
-/app banner (owner on their own, wording depends on L2):
+/app banner (owner on their own, approved):
 
 - "You're the only one here yet. Invite your partner from Household."
 
@@ -435,8 +452,8 @@ Existing things this slice changes:
 - `/app` header (one more link), and / and /sign-in (one more link each).
 - If option 2: `transactions`, `post_transaction`, `lib/moves*.ts` and
   their tests.
-- CLAUDE.md: "Partner invite, with approvals and caps" and the banner
-  wording (see L4, L2).
+- CLAUDE.md: approvals and caps moved to a later slice, and the banner
+  says a code, not a link (done in step 2).
 
 Risks:
 
@@ -450,29 +467,23 @@ Risks:
 - **Invite codes in chat apps.** The code is sent outside FamilyFi. The
   48-hour limit, single use, voiding and the wrong-code limits keep that
   safe enough for test money.
-- **The same key for two kinds of locked copy** (if L3 is "same key").
+- **The same key for two kinds of locked copy** (decided).
   Safe with random IVs; a key change re-locks both.
 - **Expired invites stay as rows**, wiped of their locked copy. A later
   clean-up can remove old rows if needed.
 - **Totals.** Partners count towards the 300, so the cap is people, not
   households.
 
-## L. Questions
+## L. Answers to the questions (decided)
 
-1. **Roles.** Must the partner choose the other role from the owner
-   (CLAUDE.md says "as the other role"), enforced by the database? Or may
-   both choose the same?
-2. **The /app banner.** CLAUDE.md says "Send this link to your spouse",
-   but the decision is a code. Approve the proposed wording, or give yours.
-3. **Which key locks invite codes:** the existing
-   ACCESS_CODE_ENCRYPTION_KEY (recommended) or a new INVITE_ENCRYPTION_KEY?
-   And may the owner see an unused code again (recommended yes)?
-4. **"Approvals and caps"** in CLAUDE.md's planned screen 4: the decision
-   gives the partner the same rights. Are approvals and caps a later
-   slice, so CLAUDE.md should say so?
-5. **Ledger attribution:** option 1, 2 or 3?
-6. **Where the invite lives:** a new `/app/household` screen (recommended)
-   or a section on Profile?
-7. **Limits:** 5 per 15 minutes and 20 per 24 hours for wrong invite
-   codes, 10 invites per household per day, and joins sharing the sign-up
-   limits: approved?
+1. **Roles:** any role is allowed; the partner may choose the same role as
+   the owner. No role rule, and no role sentence.
+2. **Banner:** "You're the only one here yet. Invite your partner from
+   Household."
+3. **Key:** the existing ACCESS_CODE_ENCRYPTION_KEY. The owner may see an
+   unused code again.
+4. **Approvals and caps:** a later slice. Here the partner has the same
+   money rights as the owner.
+5. **Ledger:** option 2, as step 9.
+6. **Where the invite lives:** the new `/app/household` screen.
+7. **Limits:** approved as proposed in section C.
