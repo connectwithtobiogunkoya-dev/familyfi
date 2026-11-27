@@ -13,7 +13,6 @@ import type { Metadata } from "next";
 import { connection } from "next/server";
 
 import { formatAccessCode, tidyAccessCode } from "../../lib/access-code";
-import { signUpRefusalSentence } from "../../lib/auth-limits";
 import { getMyAccessCode, requireSession } from "../../lib/session";
 import { AccessCode } from "./access-code";
 import styles from "./page.module.css";
@@ -21,6 +20,10 @@ import styles from "./page.module.css";
 export const metadata: Metadata = {
   title: "FamilyFi",
 };
+
+// The one sentence shown when something on this page cannot be read. It
+// reads correctly for an owner and a partner alike.
+const LOAD_FAILED_SENTENCE = "We could not load this right now. Please try again.";
 
 // "View my profile": an outlined link, full width and 52 px tall.
 const VIEW_PROFILE_LINK = {
@@ -55,7 +58,7 @@ export default async function WelcomePage() {
 
       {code === null ? (
         <p className={styles.notice} role="status">
-          {signUpRefusalSentence("unknown")}
+          {LOAD_FAILED_SENTENCE}
         </p>
       ) : (
         <>

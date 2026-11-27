@@ -15,7 +15,6 @@ import { connection } from "next/server";
 
 import { formatAccessCode, tidyAccessCode } from "../../../lib/access-code";
 import { getProfile } from "../../../lib/auth-db";
-import { signUpRefusalSentence } from "../../../lib/auth-limits";
 import { profileDisplay } from "../../../lib/profile-core";
 import { getMyAccessCode, requireSession } from "../../../lib/session";
 import { AccessCode } from "../../welcome/access-code";
@@ -25,6 +24,10 @@ import { SignOutButton } from "./sign-out-button";
 export const metadata: Metadata = {
   title: "FamilyFi",
 };
+
+// The one sentence shown when something on this page cannot be read. It
+// reads correctly for an owner and a partner alike.
+const LOAD_FAILED_SENTENCE = "We could not load this right now. Please try again.";
 
 export default async function ProfilePage() {
   // Wait for a real visit, so this page is never served from a stored copy.
@@ -48,7 +51,7 @@ export default async function ProfilePage() {
         {backLink}
         <h1 className={styles.title}>Profile</h1>
         <p className={styles.notice} role="status">
-          {signUpRefusalSentence("unknown")}
+          {LOAD_FAILED_SENTENCE}
         </p>
         <SignOutButton />
       </div>
@@ -110,7 +113,7 @@ export default async function ProfilePage() {
         </h2>
         {code === null ? (
           <p className={styles.notice} role="status">
-            {signUpRefusalSentence("unknown")}
+            {LOAD_FAILED_SENTENCE}
           </p>
         ) : (
           <AccessCode code={formatAccessCode(tidyAccessCode(code))} />
