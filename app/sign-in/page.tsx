@@ -24,6 +24,9 @@ export default async function SignInPage() {
       <a href="/sign-up" className={styles.link}>
         Create your household
       </a>
+      <a href="/join" className={styles.inviteLink}>
+        I have an invite code
+      </a>
     </div>
   );
 }

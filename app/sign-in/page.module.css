@@ -103,3 +103,23 @@
   outline: 3px solid #2563eb;
   outline-offset: 2px;
 }
+
+/* "I have an invite code": a quieter text link below the buttons, still
+ * tall enough to tap easily. */
+.inviteLink {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 52px;
+  margin: 8px 0 0;
+  color: #14532d;
+  font-size: 1rem;
+  font-weight: 600;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.inviteLink:focus-visible {
+  outline: 3px solid #2563eb;
+  outline-offset: 2px;
+}

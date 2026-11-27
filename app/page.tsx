@@ -19,6 +19,9 @@ export default function HomePage() {
           Sign in
         </a>
       </div>
+      <a href="/join" className={styles.inviteLink}>
+        I have an invite code
+      </a>
     </div>
   );
 }
