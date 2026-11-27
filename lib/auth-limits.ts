@@ -27,6 +27,20 @@ export const AUTH_LIMITS = {
   sessionAbsoluteDays: 180,
 } as const;
 
+/** The limits on invites and joining, approved in docs/slice-6-plan.md (section C). */
+export const INVITE_LIMITS = {
+  /** Wrong invite codes from one visitor in 15 minutes. */
+  wrongInvitesPer15Minutes: 5,
+  /** Wrong invite codes from one visitor in 24 hours. */
+  wrongInvitesPer24Hours: 20,
+  /** Invite codes one household may create in 24 hours, voided ones included. */
+  invitesPerHouseholdPer24Hours: 10,
+} as const;
+
+// Joining a household creates a customer, so it counts as a sign-up: it
+// shares signUpsPerVisitorPer24Hours, customersPerDay and customersTotal
+// above, and maxSignUpsPerVisitor below, with no numbers of its own.
+
 // How often a session's last use is moved forward (at most once an hour)
 // is decided by the database function get_session alone, so it is not
 // repeated here.

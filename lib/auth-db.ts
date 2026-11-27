@@ -21,6 +21,18 @@ import {
   type SignInCallResult,
 } from "./auth-db-core.ts";
 import { getProfileCall, type ProfileAnswer } from "./auth-db-core.ts";
+import {
+  createInviteCall,
+  getActiveInviteCall,
+  getHouseholdMembersCall,
+  joinHouseholdCall,
+  type ActiveInviteResult,
+  type CreateInviteArgs,
+  type CreateInviteResult,
+  type HouseholdMember,
+  type JoinHouseholdArgs,
+  type JoinHouseholdResult,
+} from "./auth-db-core.ts";
 
 // How long to wait for the database before treating it as no answer.
 const DATABASE_TIMEOUT_MS = 10000;
@@ -69,4 +81,23 @@ export async function getAccessCodeMaterial(customerId: string): Promise<AccessC
 
 export async function getProfile(customerId: string): Promise<ProfileAnswer | null> {
   return getProfileCall(customerId, realRpc);
+}
+
+// Slice 6: invites and joining. Each goes as an ordinary call (POST);
+// get_active_invite can write, so it must never be a read-only one.
+
+export async function createInvite(args: CreateInviteArgs): Promise<CreateInviteResult> {
+  return createInviteCall(args, realRpc);
+}
+
+export async function getActiveInvite(customerId: string): Promise<ActiveInviteResult> {
+  return getActiveInviteCall(customerId, realRpc);
+}
+
+export async function joinHousehold(args: JoinHouseholdArgs): Promise<JoinHouseholdResult> {
+  return joinHouseholdCall(args, realRpc);
+}
+
+export async function getHouseholdMembers(customerId: string): Promise<HouseholdMember[] | null> {
+  return getHouseholdMembersCall(customerId, realRpc);
 }

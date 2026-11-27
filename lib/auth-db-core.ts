@@ -15,6 +15,7 @@
 
 import { readSignInStatus, readSignUpRefusal, type SignInStatus, type SignUpRefusalCode } from "./auth-limits.ts";
 import { normaliseAccountId } from "./statement.ts";
+import { INVITE_REFUSAL_CODES, JOIN_REFUSAL_CODES, readRefusalCode, type InviteRefusalCode, type JoinRefusalCode } from "./invite-rules.ts";
 
 /** What one database call gives back: data, or an error. */
 export type RpcAnswer = { data: unknown; error: { message?: unknown } | null; status?: number };
@@ -409,4 +410,230 @@ export async function getProfileCall(customerId: string, rpc: Rpc): Promise<Prof
     bvnLast3: data.bvn_last3,
     accounts,
   };
+}
+
+// ---------------------------------------------------------------------
+// Slice 6: invites and joining
+// ---------------------------------------------------------------------
+//
+// One thin function for each Slice 6 database function:
+//   createInviteCall          create_invite
+//   getActiveInviteCall       get_active_invite
+//   joinHouseholdCall         join_household (20 arguments)
+//   getHouseholdMembersCall   get_household_members
+// None takes a household id: the database finds the household from the
+// customer id, which the server took from the person's session.
+
+/** Everything create_invite needs, made on the server. */
+export type CreateInviteArgs = {
+  customerId: string;
+  codeHash: string;
+  codeEncrypted: string;
+  keyVersion: number;
+  maxPerDay: number;
+};
+
+export type CreateInviteResult =
+  | { ok: true; inviteId: string; expiresAt: string }
+  | { ok: false; code: InviteRefusalCode | "unknown" };
+
+/**
+ * Call create_invite once, with its 5 arguments in the migration's order.
+ * A refusal gives only its code; a failure with no answer gives "unknown".
+ */
+export async function createInviteCall(args: CreateInviteArgs, rpc: Rpc): Promise<CreateInviteResult> {
+  const answer = await call(rpc, "create_invite", {
+    p_customer_id: args.customerId,
+    p_code_hash: args.codeHash,
+    p_code_encrypted: args.codeEncrypted,
+    p_key_version: args.keyVersion,
+    p_max_per_day: args.maxPerDay,
+  });
+  if (answer === null || answer.status === 0) {
+    return { ok: false, code: "unknown" };
+  }
+  if (answer.error) {
+    return { ok: false, code: readRefusalCode(answer.error, INVITE_REFUSAL_CODES) };
+  }
+  const data = answer.data as Record<string, unknown> | null;
+  if (
+    data === null ||
+    typeof data !== "object" ||
+    Array.isArray(data) ||
+    !isUuid(data.invite_id) ||
+    typeof data.expires_at !== "string" ||
+    Number.isNaN(Date.parse(data.expires_at))
+  ) {
+    return { ok: false, code: "unknown" };
+  }
+  return { ok: true, inviteId: data.invite_id as string, expiresAt: data.expires_at };
+}
+
+/** What get_active_invite can give: an invite, none, or a failure. */
+export type ActiveInviteResult =
+  | { kind: "active"; codeEncrypted: string; keyVersion: number; expiresAt: string }
+  | { kind: "none" }
+  | { kind: "failed" };
+
+/**
+ * Call get_active_invite for one person. It can write (it voids an invite
+ * found past its time), so it goes as an ordinary call, never a read-only
+ * one: the real rpc in lib/auth-db.ts never asks for a read-only call.
+ */
+export async function getActiveInviteCall(customerId: string, rpc: Rpc): Promise<ActiveInviteResult> {
+  if (!isUuid(customerId)) {
+    return { kind: "failed" };
+  }
+  const answer = await call(rpc, "get_active_invite", { p_customer_id: customerId });
+  if (answer === null || answer.status === 0 || answer.error) {
+    return { kind: "failed" };
+  }
+  if (answer.data === null) {
+    return { kind: "none" };
+  }
+  const data = answer.data as Record<string, unknown>;
+  if (
+    typeof data !== "object" ||
+    Array.isArray(data) ||
+    typeof data.code_encrypted !== "string" ||
+    data.code_encrypted.length === 0 ||
+    typeof data.key_version !== "number" ||
+    !Number.isInteger(data.key_version) ||
+    data.key_version < 1 ||
+    typeof data.expires_at !== "string" ||
+    Number.isNaN(Date.parse(data.expires_at))
+  ) {
+    return { kind: "failed" };
+  }
+  return { kind: "active", codeEncrypted: data.code_encrypted, keyVersion: data.key_version, expiresAt: data.expires_at };
+}
+
+/** Everything join_household needs, already checked and made on the server. */
+export type JoinHouseholdArgs = {
+  fullName: string;
+  phone: string;
+  dateOfBirth: string;
+  role: "husband" | "wife";
+  nin: string;
+  bvn: string;
+  testTermsAccepted: boolean;
+  inviteHash: string;
+  codeHash: string;
+  codeEncrypted: string;
+  keyVersion: number;
+  visitorHash: string;
+  maxSignUpsPerVisitor: number;
+  maxCustomersPerDay: number;
+  maxCustomersTotal: number;
+  maxWrongInvitesPer15Minutes: number;
+  maxWrongInvitesPer24Hours: number;
+  tokenHash: string;
+  idleDays: number;
+  absoluteDays: number;
+};
+
+export type JoinHouseholdResult =
+  | { status: "joined"; customerId: string; householdId: string; sessionId: string }
+  | { status: "invite_not_valid" }
+  | { status: "too_many_attempts" }
+  | { status: "refused"; code: JoinRefusalCode | "unknown" };
+
+/**
+ * Call join_household once, with its 20 arguments in the migration's
+ * order. "joined", "invite_not_valid" and "too_many_attempts" are normal
+ * results; a raised refusal gives only its code. There is deliberately NO
+ * automatic retry, for the same reason as createHouseholdCall.
+ */
+export async function joinHouseholdCall(args: JoinHouseholdArgs, rpc: Rpc): Promise<JoinHouseholdResult> {
+  const answer = await call(rpc, "join_household", {
+    p_full_name: args.fullName,
+    p_phone: args.phone,
+    p_date_of_birth: args.dateOfBirth,
+    p_role: args.role,
+    p_nin: args.nin,
+    p_bvn: args.bvn,
+    p_test_terms_accepted: args.testTermsAccepted,
+    p_invite_hash: args.inviteHash,
+    p_code_hash: args.codeHash,
+    p_code_encrypted: args.codeEncrypted,
+    p_key_version: args.keyVersion,
+    p_visitor_hash: args.visitorHash,
+    p_max_signups_per_visitor: args.maxSignUpsPerVisitor,
+    p_max_customers_per_day: args.maxCustomersPerDay,
+    p_max_customers_total: args.maxCustomersTotal,
+    p_max_wrong_invites_per_15_minutes: args.maxWrongInvitesPer15Minutes,
+    p_max_wrong_invites_per_24_hours: args.maxWrongInvitesPer24Hours,
+    p_token_hash: args.tokenHash,
+    p_idle_days: args.idleDays,
+    p_absolute_days: args.absoluteDays,
+  });
+  if (answer === null || answer.status === 0) {
+    return { status: "refused", code: "unknown" };
+  }
+  if (answer.error) {
+    return { status: "refused", code: readRefusalCode(answer.error, JOIN_REFUSAL_CODES) };
+  }
+  const data = answer.data as Record<string, unknown> | null;
+  if (data === null || typeof data !== "object" || Array.isArray(data)) {
+    return { status: "refused", code: "unknown" };
+  }
+  if (data.status === "invite_not_valid" || data.status === "too_many_attempts") {
+    return { status: data.status };
+  }
+  if (data.status === "joined" && isUuid(data.customer_id) && isUuid(data.household_id) && isUuid(data.session_id)) {
+    return {
+      status: "joined",
+      customerId: data.customer_id as string,
+      householdId: data.household_id as string,
+      sessionId: data.session_id as string,
+    };
+  }
+  return { status: "refused", code: "unknown" };
+}
+
+/** One member, as the household screen may show them: name and role only. */
+export type HouseholdMember = {
+  fullName: string;
+  memberRole: "owner" | "partner";
+  isYou: boolean;
+};
+
+/**
+ * Call get_household_members for one person. Gives the members (one or
+ * two, owner first), or null when there is no household or anything goes
+ * wrong. Only the name, the role and is_you are copied across; anything
+ * else in the answer is dropped, and an answer holding 11 digits in a row
+ * anywhere (the length of a full NIN, BVN or phone) is refused.
+ */
+export async function getHouseholdMembersCall(customerId: string, rpc: Rpc): Promise<HouseholdMember[] | null> {
+  if (!isUuid(customerId)) {
+    return null;
+  }
+  const answer = await call(rpc, "get_household_members", { p_customer_id: customerId });
+  if (answer === null || answer.status === 0 || answer.error) {
+    return null;
+  }
+  const data = answer.data;
+  if (!Array.isArray(data) || data.length < 1 || data.length > 2 || holdsElevenDigits(data, false)) {
+    return null;
+  }
+  const members: HouseholdMember[] = [];
+  for (const item of data) {
+    if (item === null || typeof item !== "object" || Array.isArray(item)) {
+      return null;
+    }
+    const row = item as Record<string, unknown>;
+    if (
+      typeof row.full_name !== "string" ||
+      (row.member_role !== "owner" && row.member_role !== "partner") ||
+      typeof row.is_you !== "boolean"
+    ) {
+      return null;
+    }
+    members.push({ fullName: row.full_name, memberRole: row.member_role, isYou: row.is_you });
+  }
+  if (members.filter((m) => m.isYou).length !== 1 || members.filter((m) => m.memberRole === "owner").length > 1) {
+    return null;
+  }
+  return members;
 }
