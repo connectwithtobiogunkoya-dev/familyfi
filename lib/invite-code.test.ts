@@ -102,7 +102,7 @@ describe("invite refusal codes and sentences", () => {
     assert.equal(inviteRefusalSentence("household_full"), "Your partner has joined. Your household is full.");
     assert.equal(inviteRefusalSentence("limit_invites"), "You have made too many invite codes today. Please try again tomorrow.");
     for (const code of ["bad_request", "code_taken", "unknown"] as const) {
-      assert.equal(inviteRefusalSentence(code), signUpRefusalSentence("unknown"));
+      assert.equal(inviteRefusalSentence(code), "We could not create an invite code right now. Please try again.");
     }
     for (const code of INVITE_REFUSAL_CODES) {
       assert.ok(inviteRefusalSentence(code).length > 0);
@@ -113,10 +113,15 @@ describe("invite refusal codes and sentences", () => {
     assert.equal(joinSentence("invite_not_valid"), "That invite code did not work. Check it with your partner and try again.");
     assert.equal(INVITE_NOT_VALID_SENTENCE, joinSentence("invite_not_valid"));
     assert.equal(joinSentence("too_many_attempts"), signInSentence("too_many_attempts"));
-    for (const code of JOIN_REFUSAL_CODES) {
+    for (const code of ["bad_details", "not_verified", "under_18", "limit_visitor", "limit_daily", "limit_total"] as const) {
       assert.equal(joinSentence(code), signUpRefusalSentence(code));
     }
-    assert.equal(joinSentence("unknown"), signUpRefusalSentence("unknown"));
+    for (const code of ["bad_request", "code_taken", "unknown"] as const) {
+      assert.equal(joinSentence(code), "We could not join you to the household right now. Please try again.");
+    }
+    for (const code of JOIN_REFUSAL_CODES) {
+      assert.ok(joinSentence(code).length > 0);
+    }
   });
 
   it("only a listed code before a colon is read; nothing else of a message", () => {

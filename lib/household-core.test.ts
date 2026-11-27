@@ -11,7 +11,6 @@ import { readFileSync } from "node:fs";
 import { describe, it } from "node:test";
 
 import type { ActiveInviteResult, CreateInviteArgs, CreateInviteResult, HouseholdMember } from "./auth-db-core.ts";
-import { signUpRefusalSentence } from "./auth-limits.ts";
 import { runCreateInvite, runReadInvite, runReadMembers, type CreateInviteDeps } from "./household-core.ts";
 import { inviteCodeFingerprint, lockInviteCode, unlockInviteCode } from "./invite-code.ts";
 import type { SessionPerson } from "./session-core.ts";
@@ -34,8 +33,8 @@ function createStandIn(answers?: CreateInviteResult[]) {
   const calls: CreateInviteArgs[] = [];
   let made = 0;
   const deps: CreateInviteDeps = {
-    writesEnabled: () => true,
     getSession: async () => OWNER,
+    signupsEnabled: () => true,
     accessCodeKeys: () => new Map([[1, KEY]]),
     createInvite: async (args) => {
       calls.push(args);
@@ -55,20 +54,31 @@ function createStandIn(answers?: CreateInviteResult[]) {
 }
 
 describe("runCreateInvite", () => {
-  it("write switch off: paused first, with no session asked and no call", async () => {
+  it("no session comes before the switch: signed out even with sign-ups off", async () => {
+    const s = createStandIn();
+    assert.deepEqual(await runCreateInvite({ ...s.deps, signupsEnabled: () => false, getSession: async () => null }), { status: "signed_out" });
+    assert.equal(s.calls.length, 0);
+  });
+
+  it("the money switch has no say: creating takes no writesEnabled at all", () => {
+    assert.ok(!("writesEnabled" in createStandIn().deps));
+  });
+
+  it("sign-ups switched off: paused after the session, with no call and nothing made", async () => {
     const s = createStandIn();
     let asked = 0;
     const outcome = await runCreateInvite({
       ...s.deps,
-      writesEnabled: () => false,
+      signupsEnabled: () => false,
       getSession: async () => {
         asked += 1;
         return OWNER;
       },
     });
     assert.deepEqual(outcome, { status: "paused", message: SIGNUPS_PAUSED_SENTENCE });
-    assert.equal(asked, 0);
+    assert.equal(asked, 1);
     assert.equal(s.calls.length, 0);
+    assert.equal(s.made(), 0);
   });
 
   it("no session: signed out, no database call, nothing made", async () => {
@@ -126,8 +136,8 @@ describe("runCreateInvite", () => {
   for (const [code, sentence] of [
     ["household_full", "Your partner has joined. Your household is full."],
     ["limit_invites", "You have made too many invite codes today. Please try again tomorrow."],
-    ["bad_request", signUpRefusalSentence("unknown")],
-    ["unknown", signUpRefusalSentence("unknown")],
+    ["bad_request", "We could not create an invite code right now. Please try again."],
+    ["unknown", "We could not create an invite code right now. Please try again."],
   ] as const) {
     it(`${code} gives its fixed sentence`, async () => {
       const s = createStandIn([{ ok: false, code }]);
@@ -205,7 +215,7 @@ describe("runReadInvite", () => {
   ] as const) {
     it(`${label}: the unknown sentence and no code`, async () => {
       const outcome = await runReadInvite(readDeps(OWNER, invite as ActiveInviteResult).deps);
-      assert.deepEqual(outcome, { status: "failed", message: signUpRefusalSentence("unknown") });
+      assert.deepEqual(outcome, { status: "failed", message: "We could not create an invite code right now. Please try again." });
       assert.ok(!JSON.stringify(outcome).includes(CODE));
     });
   }
@@ -247,7 +257,7 @@ describe("runReadMembers", () => {
   it("a failure gives the unknown sentence", async () => {
     assert.deepEqual(await runReadMembers({ getSession: async () => OWNER, getHouseholdMembers: async () => null }), {
       status: "failed",
-      message: signUpRefusalSentence("unknown"),
+      message: "We could not create an invite code right now. Please try again.",
     });
   });
 });

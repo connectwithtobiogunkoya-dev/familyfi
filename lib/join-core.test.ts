@@ -80,7 +80,6 @@ function standIn(changes: Partial<JoinDeps> = {}, answer: JoinHouseholdResult | 
   const calls: JoinHouseholdArgs[] = [];
   let made = 0;
   const deps: JoinDeps = {
-    writesEnabled: () => true,
     signupsEnabled: () => true,
     accessCodeKeys: () => new Map([[1, LOCKING_KEY]]),
     visitorKey: () => VISITOR_KEY,
@@ -105,8 +104,14 @@ function standIn(changes: Partial<JoinDeps> = {}, answer: JoinHouseholdResult | 
 }
 
 describe("runJoin: the early exits make no database call", () => {
-  it("money movement switched off: paused first, even with sign-ups off and no secrets", async () => {
-    const s = standIn({ writesEnabled: () => false, signupsEnabled: () => false, accessCodeKeys: () => null });
+  it("the money switch has no say: joining takes no writesEnabled at all", async () => {
+    const s = standIn();
+    assert.ok(!("writesEnabled" in s.deps));
+    assert.equal((await runJoin(FORM, CONTEXT, s.deps)).status, "ok");
+  });
+
+  it("sign-ups switched off: paused first, even with no secrets, and nothing made", async () => {
+    const s = standIn({ signupsEnabled: () => false, accessCodeKeys: () => null });
     assert.deepEqual(await runJoin(FORM, CONTEXT, s.deps), { status: "paused", message: SIGNUPS_PAUSED_SENTENCE });
     assert.equal(s.calls.length, 0);
     assert.equal(s.made(), 0);
@@ -118,10 +123,10 @@ describe("runJoin: the early exits make no database call", () => {
     assert.equal(s.calls.length, 0);
   });
 
-  it("a missing locking key or visitor key: the unknown sentence, no call", async () => {
+  it("a missing locking key or visitor key: the join try-again sentence, no call", async () => {
     for (const changes of [{ accessCodeKeys: () => null }, { visitorKey: () => null }, { accessCodeKeys: () => new Map([[2, LOCKING_KEY]]) }]) {
       const s = standIn(changes);
-      assert.deepEqual(await runJoin(FORM, CONTEXT, s.deps), { status: "refused", code: "unknown", message: signUpRefusalSentence("unknown") });
+      assert.deepEqual(await runJoin(FORM, CONTEXT, s.deps), { status: "refused", code: "unknown", message: "We could not join you to the household right now. Please try again." });
       assert.equal(s.calls.length, 0);
     }
   });
@@ -221,11 +226,11 @@ describe("runJoin: the call", () => {
     });
   }
 
-  it("a call that throws gives the unknown sentence; no second call", async () => {
+  it("a call that throws gives the join try-again sentence; no second call", async () => {
     const s = standIn({}, () => {
       throw new Error("down");
     });
-    assert.deepEqual(await runJoin(FORM, CONTEXT, s.deps), { status: "refused", code: "unknown", message: signUpRefusalSentence("unknown") });
+    assert.deepEqual(await runJoin(FORM, CONTEXT, s.deps), { status: "refused", code: "unknown", message: "We could not join you to the household right now. Please try again." });
     assert.equal(s.calls.length, 1);
   });
 });
@@ -299,7 +304,6 @@ describe("runJoinAction", () => {
 
   it("every other outcome sets no cookie and holds nothing secret", async () => {
     const cases: Array<[JoinHouseholdResult, Partial<JoinDeps>, Record<string, string>]> = [
-      [JOINED, { writesEnabled: () => false }, TYPED],
       [JOINED, { signupsEnabled: () => false }, TYPED],
       [JOINED, {}, { ...TYPED, phone: "08012345678" }],
       [JOINED, {}, { ...TYPED, nin: "00011112299" }],
@@ -318,7 +322,7 @@ describe("runJoinAction", () => {
   });
 
   it("the general sentence shows for everything but a field problem", async () => {
-    const paused = (await runJoinAction(formWith(TYPED), action(JOINED, { writesEnabled: () => false }).deps)) as JoinFormState;
+    const paused = (await runJoinAction(formWith(TYPED), action(JOINED, { signupsEnabled: () => false }).deps)) as JoinFormState;
     assert.equal(joinGeneralSentence(paused), SIGNUPS_PAUSED_SENTENCE);
     const field = (await runJoinAction(formWith({ ...TYPED, phone: "x" }), action(JOINED).deps)) as JoinFormState;
     assert.equal(field.status, "field_errors");

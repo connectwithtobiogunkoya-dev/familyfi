@@ -317,6 +317,7 @@ describe("the page source files", () => {
     assert.deepEqual(APP_PAGES.sort(), [
       "app/app/accounts/[id]/page.tsx",
       "app/app/add-money/page.tsx",
+      "app/app/household/page.tsx",
       "app/app/move-money/page.tsx",
       "app/app/page.tsx",
       "app/app/profile/page.tsx",

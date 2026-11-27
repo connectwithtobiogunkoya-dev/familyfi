@@ -11,11 +11,10 @@ import { joinHousehold } from "./auth-db.ts";
 import { runJoin, type JoinContext, type JoinInput, type JoinResult } from "./join-core.ts";
 import { getAccessCodeKeys, getVisitorKey } from "./secrets.ts";
 import { generateSessionToken } from "./session-token.ts";
-import { signupsEnabled, writesEnabled } from "./settings.ts";
+import { signupsEnabled } from "./settings.ts";
 
 export async function join(rawForm: JoinInput, context: JoinContext): Promise<JoinResult> {
   return runJoin(rawForm, context, {
-    writesEnabled: () => writesEnabled(),
     signupsEnabled: () => signupsEnabled(),
     accessCodeKeys: getAccessCodeKeys,
     visitorKey: getVisitorKey,

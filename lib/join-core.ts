@@ -1,24 +1,24 @@
 // Joining a household with an invite code: the rules, in a fixed order.
 //
-// The same order as signing up (lib/signup-core.ts), with the write switch
-// in front and no household name:
-//   a. Money movement switched off (WRITES_ENABLED): "paused".
-//   b. Sign-up switched off (SIGNUPS_ENABLED, which also gates joining):
+// The same order as signing up (lib/signup-core.ts), with no household
+// name. Like sign-up, joining is gated by SIGNUPS_ENABLED only; the money
+// switch, WRITES_ENABLED, has no effect on it.
+//   a. Sign-up switched off (SIGNUPS_ENABLED, which also gates joining):
 //      "paused".
-//   c. A secret missing or bad: fail closed with the plain "unknown"
+//   b. A secret missing or bad: fail closed with the plain "unknown"
 //      sentence. No crash, no detail.
-//   d. The typed details are checked with the same rules and the same
+//   c. The typed details are checked with the same rules and the same
 //      fixed sentences as sign-up. Nothing is made and the database is not
 //      asked.
-//   e. A NIN or BVN ending in 99 (the simulated check): "not_verified".
+//   d. A NIN or BVN ending in 99 (the simulated check): "not_verified".
 //      The database is not asked.
-//   f. Only now is anything made: the person's access code (with its
+//   e. Only now is anything made: the person's access code (with its
 //      fingerprint and locked copy), a session token (with its
 //      fingerprint), the visitor's fingerprint, and the typed invite code's
 //      fingerprint. The invite code is always fingerprinted and sent, proper
 //      code or not, so every wrong guess is counted.
-//   g. join_household is called once.
-//   h. On "joined", the result holds only "ok" and the session token, for
+//   f. join_household is called once.
+//   g. On "joined", the result holds only "ok" and the session token, for
 //      the caller to put in the cookie. Otherwise, one fixed sentence.
 //
 // The result never holds the invite code, any fingerprint, any id, the
@@ -61,7 +61,6 @@ export type JoinContext = {
 };
 
 export type JoinDeps = {
-  writesEnabled: () => boolean;
   signupsEnabled: () => boolean;
   accessCodeKeys: () => ReadonlyMap<number, Buffer> | null;
   visitorKey: () => string | null;
@@ -85,12 +84,12 @@ function refused(code: JoinRefusal): JoinResult {
 }
 
 export async function runJoin(rawForm: JoinInput, context: JoinContext, deps: JoinDeps): Promise<JoinResult> {
-  // a. and b. The two switches.
-  if (!deps.writesEnabled() || !deps.signupsEnabled()) {
+  // a. The sign-up switch.
+  if (!deps.signupsEnabled()) {
     return { status: "paused", message: SIGNUPS_PAUSED_SENTENCE };
   }
 
-  // c. The secrets. Missing or bad: fail closed.
+  // b. The secrets. Missing or bad: fail closed.
   const keys = deps.accessCodeKeys();
   const lockingKey = keys?.get(CURRENT_KEY_VERSION) ?? null;
   const visitorKey = deps.visitorKey();
@@ -98,7 +97,7 @@ export async function runJoin(rawForm: JoinInput, context: JoinContext, deps: Jo
     return refused("unknown");
   }
 
-  // d. and e. The typed details, then the simulated check. The household
+  // c. and d. The typed details, then the simulated check. The household
   //    name is not asked for when joining, so it is checked as empty.
   const identity = checkIdentity(
     {
@@ -122,7 +121,7 @@ export async function runJoin(rawForm: JoinInput, context: JoinContext, deps: Jo
   const details = identity.details;
 
   try {
-    // f. Only now: the access code, the session token, the fingerprints.
+    // e. Only now: the access code, the session token, the fingerprints.
     const accessCode = deps.generateAccessCode();
     const sessionToken = deps.generateSessionToken();
 
@@ -149,10 +148,10 @@ export async function runJoin(rawForm: JoinInput, context: JoinContext, deps: Jo
       absoluteDays: AUTH_LIMITS.sessionAbsoluteDays,
     };
 
-    // g. One call. No retry: see joinHouseholdCall in lib/auth-db-core.ts.
+    // f. One call. No retry: see joinHouseholdCall in lib/auth-db-core.ts.
     const result = await deps.joinHousehold(args);
 
-    // h.
+    // g.
     switch (result.status) {
       case "joined":
         return { status: "ok", sessionToken };

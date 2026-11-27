@@ -45,6 +45,12 @@ same household's money, each with their own access code and session.
   sign-up limits (3 per visitor per 24 hours, 50 per day, 300 customers in
   total).
 - Every proposed visitor sentence in section J is approved.
+- Joining and creating an invite are gated by SIGNUPS_ENABLED only, like
+  sign-up. WRITES_ENABLED (money movement) has no effect on either.
+- Two more sentences, approved in step 5. On the household screen, when
+  an invite cannot be made or shown: "We could not create an invite code right now. Please try again."
+  When joining fails for a reason that is not the visitor's (unknown,
+  bad_request, code_taken): "We could not join you to the household right now. Please try again."
 
 ## What exists today that this slice builds on
 

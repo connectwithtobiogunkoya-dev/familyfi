@@ -50,6 +50,36 @@
   outline-offset: 2px;
 }
 
+/* "Household" and "Profile", side by side. */
+.headerLinks {
+  display: flex;
+  flex: none;
+  gap: 8px;
+}
+
+/* The banner for an owner on their own: a link to /app/household. */
+.banner {
+  display: flex;
+  align-items: center;
+  min-height: 52px;
+  margin: 0 0 20px;
+  padding: 12px 16px;
+  border: 1px solid #14532d;
+  border-radius: 12px;
+  background: #f0fdf4;
+  color: #14532d;
+  font-size: 1rem;
+  line-height: 1.5;
+  font-weight: 600;
+  text-decoration: none;
+  box-sizing: border-box;
+}
+
+.banner:focus-visible {
+  outline: 3px solid #2563eb;
+  outline-offset: 2px;
+}
+
 /* The large wallet card: dark green with white text. It is a link to the
  * wallet's statement, so it is shown as a block with no underline. */
 .wallet {

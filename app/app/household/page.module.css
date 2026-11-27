@@ -1,0 +1,167 @@
+/* Styles for the household screen.
+ *
+ * Mobile first, matching the other /app screens: one column for a phone
+ * about 400 px wide, centred and never wider than 480 px. Every tap target
+ * is at least 52 px tall.
+ */
+
+.screen {
+  max-width: 480px;
+  margin: 0 auto;
+  color: #111827;
+}
+
+/* "‹ Back to my household": a large enough target for a thumb. */
+.back {
+  display: inline-flex;
+  align-items: center;
+  min-height: 52px;
+  margin: 0 0 8px;
+  font-size: 1rem;
+  color: #14532d;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.title {
+  margin: 0 0 16px;
+  font-size: 1.5rem;
+  line-height: 1.3;
+  font-weight: 700;
+}
+
+.section {
+  margin: 0 0 24px;
+}
+
+.heading {
+  margin: 0 0 12px;
+  font-size: 1.125rem;
+  line-height: 1.3;
+  font-weight: 700;
+}
+
+.members {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  border: 1px solid #d1d5db;
+  border-radius: 12px;
+  background: #ffffff;
+}
+
+.member {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  min-height: 52px;
+  padding: 0 16px;
+  border-top: 1px solid #e5e7eb;
+  font-size: 1rem;
+  box-sizing: border-box;
+}
+
+.member:first-child {
+  border-top: 0;
+}
+
+.memberName {
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+.you {
+  font-weight: 400;
+  color: #4b5563;
+}
+
+.memberRole {
+  flex: none;
+  color: #4b5563;
+}
+
+/* The invite code: the same dark green card as the wallet on /app. */
+.codeCard {
+  padding: 20px;
+  border-radius: 16px;
+  background: #14532d;
+  color: #ffffff;
+}
+
+.code {
+  margin: 0;
+  font-size: 1.75rem;
+  line-height: 1.3;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  font-family: ui-monospace, "Cascadia Mono", Menlo, Consolas, monospace;
+  text-align: center;
+  overflow-wrap: anywhere;
+  user-select: all;
+}
+
+.note {
+  margin: 12px 0 0;
+  font-size: 1rem;
+  line-height: 1.5;
+}
+
+.stops {
+  margin: 8px 0 0;
+  font-size: 1rem;
+  font-weight: 600;
+  color: #14532d;
+}
+
+/* A calm sentence: a full household, a partner, or something that failed. */
+.notice {
+  margin: 0 0 16px;
+  padding: 16px 20px;
+  border: 1px solid #d1d5db;
+  border-radius: 12px;
+  background: #f9fafb;
+  font-size: 1rem;
+  line-height: 1.5;
+}
+
+/* The fixed sentence for a refused request. */
+.error {
+  margin: 0 0 16px;
+  padding: 14px 16px;
+  border: 1px solid #9a3412;
+  border-radius: 12px;
+  background: #ffffff;
+  font-size: 1rem;
+  line-height: 1.5;
+}
+
+.form {
+  margin: 16px 0 0;
+  display: grid;
+}
+
+/* The create button: full width, dark green, at least 52 px tall. */
+.button {
+  min-height: 52px;
+  padding: 12px 20px;
+  border: 0;
+  border-radius: 12px;
+  background: #14532d;
+  color: #ffffff;
+  font-size: 1.125rem;
+  font-weight: 700;
+  font-family: inherit;
+  cursor: pointer;
+}
+
+.button:disabled {
+  background: #374151;
+  cursor: progress;
+}
+
+.back:focus-visible,
+.button:focus-visible {
+  outline: 3px solid #2563eb;
+  outline-offset: 2px;
+}

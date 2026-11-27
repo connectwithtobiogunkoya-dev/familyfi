@@ -15,13 +15,13 @@ import {
 import { generateInviteCode } from "./invite-code.ts";
 import { getAccessCodeKeys } from "./secrets.ts";
 import { getSession } from "./session.ts";
-import { writesEnabled } from "./settings.ts";
+import { signupsEnabled } from "./settings.ts";
 
 /** Create an invite code for the signed-in owner. */
 export async function createMyInvite(): Promise<CreateInviteOutcome> {
   return runCreateInvite({
-    writesEnabled: () => writesEnabled(),
     getSession,
+    signupsEnabled: () => signupsEnabled(),
     accessCodeKeys: getAccessCodeKeys,
     createInvite,
     generateInviteCode: () => generateInviteCode(),

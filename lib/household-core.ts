@@ -29,8 +29,8 @@ import { SIGNUPS_PAUSED_SENTENCE } from "./signup-form-state.ts";
 // ---------------------------------------------------------------------
 
 export type CreateInviteDeps = {
-  writesEnabled: () => boolean;
   getSession: () => Promise<SessionPerson | null>;
+  signupsEnabled: () => boolean;
   accessCodeKeys: () => ReadonlyMap<number, Buffer> | null;
   createInvite: (args: CreateInviteArgs) => Promise<CreateInviteResult>;
   generateInviteCode: () => string;
@@ -55,8 +55,10 @@ function inviteRefused(code: InviteRefusalCode | "unknown"): CreateInviteOutcome
 }
 
 /**
- * Create an invite code for the signed-in owner. In this order: the write
- * switch, then the session, then the secrets, then the database call. The
+ * Create an invite code for the signed-in owner. In this order: the
+ * session, then the sign-up switch (SIGNUPS_ENABLED, which gates joining;
+ * WRITES_ENABLED has no effect here), then the secrets, then the database
+ * call. The
  * database alone decides who is the owner: a partner's session is refused
  * there with "not_owner", whatever the screen shows.
  *
@@ -65,15 +67,15 @@ function inviteRefused(code: InviteRefusalCode | "unknown"): CreateInviteOutcome
  * server for the owner.
  */
 export async function runCreateInvite(deps: CreateInviteDeps): Promise<CreateInviteOutcome> {
-  // 1. The write switch.
-  if (!deps.writesEnabled()) {
-    return { status: "paused", message: SIGNUPS_PAUSED_SENTENCE };
-  }
-
-  // 2. The session. With none, nothing else happens.
+  // 1. The session. With none, nothing else happens.
   const person = await sessionOrNull(deps.getSession);
   if (person === null) {
     return { status: "signed_out" };
+  }
+
+  // 2. The sign-up switch: with no joining, an invite would be no use.
+  if (!deps.signupsEnabled()) {
+    return { status: "paused", message: SIGNUPS_PAUSED_SENTENCE };
   }
 
   // 3. The locking key. Missing: fail closed.

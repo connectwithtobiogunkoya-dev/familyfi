@@ -12,6 +12,8 @@ import type { Metadata } from "next";
 import { connection } from "next/server";
 
 import { errorSentence } from "../../lib/errors";
+import { readMyHouseholdMembers } from "../../lib/household";
+import { showLoneOwnerBanner } from "../../lib/household-screen";
 import { getHouseholdBalances } from "../../lib/ledger";
 import { formatNaira } from "../../lib/money";
 import { readNotice } from "../../lib/notices";
@@ -50,6 +52,10 @@ export default async function AppHomePage({
   // sends the visitor to /sign-in and nothing is read from the database.
   // The household is always this person's own, from their session.
   const person = await requireSession();
+
+  // Who is in the household, for the banner below the header. A failed
+  // read just means no banner.
+  const lonelyOwner = showLoneOwnerBanner(await readMyHouseholdMembers());
 
   // A confirmation from the address, such as ?notice=added. Only the exact
   // codes "added" and "replayed" are accepted, each as a fixed sentence.
@@ -92,10 +98,23 @@ export default async function AppHomePage({
 
       <div className={styles.header}>
         <h1 className={styles.family}>{person.householdName}</h1>
-        <a href="/app/profile" className={styles.profileLink}>
-          Profile
-        </a>
+        <div className={styles.headerLinks}>
+          <a href="/app/household" className={styles.profileLink}>
+            Household
+          </a>
+          <a href="/app/profile" className={styles.profileLink}>
+            Profile
+          </a>
+        </div>
       </div>
+
+      {/* Only for an owner who is the household's one member. If the
+          members cannot be read, there is no banner and no error. */}
+      {lonelyOwner ? (
+        <a href="/app/household" className={styles.banner}>
+          {"You're the only one here yet. Invite your partner from Household."}
+        </a>
+      ) : null}
 
       {wallet === null ? (
         <p className={styles.notice} role="status">

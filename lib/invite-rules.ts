@@ -67,6 +67,12 @@ export function readRefusalCode<Code extends string>(error: unknown, codes: read
   return "unknown";
 }
 
+/** The household screen's sentence when an invite cannot be made or shown. */
+export const INVITE_TRY_AGAIN_SENTENCE = "We could not create an invite code right now. Please try again.";
+
+/** The sentence when a join fails for a reason that is not the visitor's. */
+export const JOIN_TRY_AGAIN_SENTENCE = "We could not join you to the household right now. Please try again.";
+
 /** The sentence for a wrong, used, voided or expired invite code, and for a full household. */
 export const INVITE_NOT_VALID_SENTENCE = "That invite code did not work. Check it with your partner and try again.";
 
@@ -82,9 +88,7 @@ export function inviteRefusalSentence(code: InviteRefusalCode | "unknown"): stri
     case "bad_request":
     case "code_taken":
     default:
-      // The existing unknown sentence (see the report: a wording made for
-      // invites may be wanted here).
-      return signUpRefusalSentence("unknown");
+      return INVITE_TRY_AGAIN_SENTENCE;
   }
 }
 
@@ -101,10 +105,10 @@ export function joinSentence(code: Exclude<JoinStatus, "joined"> | JoinRefusalCo
     case "limit_visitor":
     case "limit_daily":
     case "limit_total":
+      return signUpRefusalSentence(code);
     case "bad_request":
     case "code_taken":
-      return signUpRefusalSentence(code);
     default:
-      return signUpRefusalSentence("unknown");
+      return JOIN_TRY_AGAIN_SENTENCE;
   }
 }
